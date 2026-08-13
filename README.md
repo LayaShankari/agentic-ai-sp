@@ -11,22 +11,22 @@ An AI-powered decision support system designed specifically for **ICFAI Tech Sch
 
 ---
 
-## 📌 Project Overview
+## Project Overview
 
 The **Agentic AI Institutional Decision Engine** empowers institutional leaders with data-driven decision-making capabilities. It bridges raw campus data with machine learning analytics and LLM recommendation pipelines to monitor student intake, identify academic failure risks early, audit mandatory attendance thresholds, and deliver real-time institutional intelligence.
 
 ### Key Capabilities
-- 🔐 **Role-Based Authentication**: Custom sign-in matching official ICFAI Tech School branding with **Admin**, **Faculty**, and **Viewer** role tabs, Google Sign-In redirect, and live user session logging.
-- 📊 **Executive Command Dashboard**: Responsive layout with deep navy sidebar (`#0A1F44`), academic year filters (`2024 - 2025`), global search, notification counters, and modular views.
-- 👥 **Admissions Analytics**: Track total application volume, branch demand index, seat allocation rates (1st and 2nd choice), and branch utilization.
-- 🎓 **Academic Risk Engine**: Identify students scoring under 40/100 marks before final exams, monitor scholarship eligibility (>8 CGPA), and track NPTEL course completions.
-- 📅 **Attendance Audit & Compliance**: Real-time tracking of overall attendance percentages with automated alerts for students dropping below mandatory **75%** and critical **65%** thresholds.
-- ⚙️ **User Activity & Audit Logs**: Live table recording all login sessions (email, role, timestamp, status, device) with PostgreSQL backend schema integration.
-- 📄 **Custom Reporting & Export**: Generate PDF and Excel summaries for institutional review.
+- **Role-Based Authentication**: Custom sign-in matching official ICFAI Tech School branding with **Admin**, **Faculty**, and **Viewer** role tabs, Google Sign-In redirect, and live user session logging.
+- **Executive Command Dashboard**: Responsive layout with deep navy sidebar (`#0A1F44`), academic year filters (`2024 - 2025`), global search, notification counters, and modular views.
+- **Admissions Analytics**: Track total application volume, branch demand index, seat allocation rates (1st and 2nd choice), and branch utilization.
+- **Academic Risk Engine**: Identify students scoring under 40/100 marks before final exams, monitor scholarship eligibility (>8 CGPA), and track NPTEL course completions.
+- **Attendance Audit & Compliance**: Real-time tracking of overall attendance percentages with automated alerts for students dropping below mandatory **75%** and critical **65%** thresholds.
+- **User Activity & Audit Logs**: Live table recording all login sessions (email, role, timestamp, status, device) with PostgreSQL backend schema integration.
+- **Custom Reporting & Export**: Generate PDF and Excel summaries for institutional review.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend Application
 - **Framework**: [React.js 18](https://reactjs.org/) + [TypeScript](https://www.typescriptlang.org/)
@@ -52,7 +52,7 @@ The **Agentic AI Institutional Decision Engine** empowers institutional leaders 
 
 ---
 
-## 🔄 End-to-End System Workflow
+## End-to-End System Workflow
 
 ```mermaid
 flowchart LR
@@ -79,7 +79,7 @@ flowchart LR
 
 ---
 
-## 📊 Key Performance Indicators (KPIs)
+## Key Performance Indicators (KPIs)
 
 | KPI | Module | Description |
 | :--- | :--- | :--- |
@@ -94,11 +94,21 @@ flowchart LR
 | **Students at Risk of Failure (<40 Marks)** | Academics | Students scoring below 40/100 requiring academic remediation. |
 | **Scholarship-Eligible Students (>8 CGPA)** | Academics | Percentage of high-performing students eligible for merit scholarships. |
 | **NPTEL Course Participation (%)** | Academics | Percentage of students enrolled in or completing NPTEL certifications. |
-| **AI Actionable Recommendations** | Agentic AI | Real-time automated recommendations generated from cross-module analytics. |
 
 ---
 
-## 📂 Project Structure
+## AI Actionable Recommendations & Agentic Intelligence
+
+The **Agentic AI Engine** continuously monitors institutional data across Admissions, Academics, and Attendance to automatically generate proactive recommendations and alerts for decision-makers:
+
+- **Intake & Demand Optimization**: Detects high-demand engineering branches (e.g., B.Tech CSE / AI & DS) and recommends seat re-allocations based on first-choice preference trends.
+- **Early Academic Interventions**: Identifies students scoring below 40/100 marks prior to final examinations and triggers targeted academic tutoring interventions.
+- **Attendance Compliance Alerts**: Automatically flags students falling below the mandatory 75% and critical 65% attendance thresholds and generates automated notifications.
+- **Merit & Certification Tracking**: Highlights students eligible for merit scholarships (>8 CGPA) and monitors NPTEL course completion rates across departments.
+
+---
+
+## Project Structure
 
 ```
 agentic-ai-sp/
@@ -119,7 +129,7 @@ agentic-ai-sp/
 
 ---
 
-## 🚀 Local Development Setup
+## Local Development Setup
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v18.0.0 or higher)
@@ -148,7 +158,7 @@ agentic-ai-sp/
 
 ---
 
-## 🛡️ Authentication & User Activity Tracking
+## Authentication & User Activity Tracking
 
 - **Demo Logins**: Select any role tab (**Admin**, **Faculty**, **Viewer**) on the login page and click **Sign In** to log in immediately.
 - **Google Sign-In**: Click **Sign in with Google** to redirect to the official Google Accounts login portal.
@@ -156,6 +166,6 @@ agentic-ai-sp/
 
 ---
 
-## 📄 License
+## License
 
 © 2025 ICFAI Tech School. All rights reserved. Proprietary institutional software.
