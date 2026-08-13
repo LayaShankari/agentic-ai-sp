@@ -94,6 +94,8 @@ flowchart LR
 | **Students at Risk of Failure (<40 Marks)** | Academics | Students scoring below 40/100 requiring academic remediation. |
 | **Scholarship-Eligible Students (>8 CGPA)** | Academics | Percentage of high-performing students eligible for merit scholarships. |
 | **NPTEL Course Participation (%)** | Academics | Percentage of students enrolled in or completing NPTEL certifications. |
+| **Internship Participation (%)** | Academics | Measures the percentage of students undertaking internships. |
+| **Placement After Internship (%)** | Academics | Measures the percentage of students who secure placement after completing an internship. |
 
 ---
 
