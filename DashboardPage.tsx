@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -18,9 +18,12 @@ import {
   Trash2,
   Database,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
+import ApplicationsByYearChart from "./ApplicationsByYearChart";
 
 type ModuleId =
   | "dashboard"
@@ -85,7 +88,7 @@ const MODULES: ModuleConfig[] = [
 
 export default function DashboardPage() {
   const [activeModule, setActiveModule] = useState<ModuleId>("dashboard");
-  const [academicYear, setAcademicYear] = useState("2024 - 2025");
+  const [academicYear, setAcademicYear] = useState("All Academic Years");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -214,9 +217,10 @@ export default function DashboardPage() {
                   onChange={(e) => setAcademicYear(e.target.value)}
                   className="appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 pr-9 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-brand-blue/30 cursor-pointer"
                 >
-                  <option value="2024 - 2025">2024 - 2025</option>
-                  <option value="2023 - 2024">2023 - 2024</option>
-                  <option value="2022 - 2023">2022 - 2023</option>
+                  <option value="All Academic Years">All Academic Years</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
                 </select>
                 <ChevronDown
                   size={14}
@@ -266,8 +270,8 @@ export default function DashboardPage() {
 
           {/* Module Content View Renderer */}
           <main className="p-6 flex-1">
-            {activeModule === "dashboard" && <PlainModuleView title="Dashboard" />}
-            {activeModule === "admissions" && <PlainModuleView title="Admissions" />}
+            {activeModule === "dashboard" && <MainDashboardView academicYear={academicYear} />}
+            {activeModule === "admissions" && <AdmissionsModuleView academicYear={academicYear} />}
             {activeModule === "academics" && <PlainModuleView title="Academics" />}
             {activeModule === "attendance" && <PlainModuleView title="Attendance" />}
             {activeModule === "settings" && <SettingsModuleView />}
@@ -281,6 +285,114 @@ export default function DashboardPage() {
           </footer>
         </div>
       </div>
+    </div>
+  );
+}
+
+function MainDashboardView({ academicYear }: { academicYear: string }) {
+  const [totalApplications, setTotalApplications] = useState<number | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchSummary = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `/api/kpis/admissions/total-applications?academic_year=${encodeURIComponent(academicYear)}`
+        );
+        if (response.ok) {
+          const json = await response.json();
+          setTotalApplications(json.value);
+        }
+      } catch (e) {
+        console.error("Error fetching total applications for dashboard summary:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSummary();
+  }, [academicYear]);
+
+  return (
+    <div className="space-y-6">
+      {/* Welcome & Overview Banner */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <LayoutDashboard className="text-[#2952E3]" size={24} />
+            Institutional Performance Dashboard
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Real-time decision engine metrics for ICFAI Tech School.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            PostgreSQL Live Sync
+          </span>
+        </div>
+      </div>
+
+      {/* Existing KPI Cards Section */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Total Applications KPI Card */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Total Applications
+            </span>
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2952E3]">
+              <Users size={20} />
+            </div>
+          </div>
+          {loading ? (
+            <div className="h-8 w-24 bg-slate-100 animate-pulse rounded-lg"></div>
+          ) : (
+            <div className="text-3xl font-extrabold text-slate-900">
+              {totalApplications != null ? totalApplications.toLocaleString() : "0"}
+            </div>
+          )}
+          <p className="text-xs text-slate-500 font-medium">
+            Unique applicants ({academicYear})
+          </p>
+        </div>
+
+        {/* Active Program Card */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Active Program
+            </span>
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+              <GraduationCap size={20} />
+            </div>
+          </div>
+          <div className="text-3xl font-extrabold text-slate-900">B.Tech</div>
+          <p className="text-xs text-slate-500 font-medium">
+            ICFAI Tech School
+          </p>
+        </div>
+
+        {/* Dataset Academic Years Card */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Academic Years Tracked
+            </span>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+              <CheckCircle2 size={20} />
+            </div>
+          </div>
+          <div className="text-3xl font-extrabold text-slate-900">2023 – 2025</div>
+          <p className="text-xs text-slate-500 font-medium">
+            Verified PostgreSQL dataset
+          </p>
+        </div>
+      </div>
+
+      {/* Main Dashboard Visualization: Applications by Year Line Chart */}
+      <ApplicationsByYearChart />
     </div>
   );
 }
@@ -404,3 +516,128 @@ function SettingsModuleView() {
     </div>
   );
 }
+
+interface TotalApplicationsData {
+  kpi: string;
+  value: number;
+  academic_year: string;
+  institution: string;
+  program: string;
+}
+
+function AdmissionsModuleView({ academicYear }: { academicYear: string }) {
+  const [data, setData] = useState<TotalApplicationsData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchKpi = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/kpis/admissions/total-applications?academic_year=${encodeURIComponent(academicYear)}`
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to fetch KPI: HTTP ${response.status}`);
+      }
+      const result = await response.json();
+      setData(result);
+    } catch (err: any) {
+      console.error("Error fetching Total Applications KPI:", err);
+      setError("Unable to connect to backend server or load database KPI.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchKpi();
+  }, [academicYear]);
+
+  return (
+    <div className="space-y-6">
+      {/* Overview Banner */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <Users className="text-[#2952E3]" size={24} />
+            Admissions Analytics & Intake Engine
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Real-time enrollment demand and student application metrics for ICFAI Tech School.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-50 text-[#2952E3] border border-blue-100 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            PostgreSQL Live Sync
+          </span>
+          <button
+            onClick={fetchKpi}
+            className="p-2 text-slate-500 hover:text-slate-800 rounded-xl border border-slate-200 hover:bg-slate-50 transition cursor-pointer"
+            title="Refresh KPI Data"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin text-[#2952E3]" : ""} />
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Display Card Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* TOTAL APPLICATIONS KPI CARD */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between">
+          <div className="p-6 space-y-4">
+            {/* KPI Title & Icon */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Total Applications
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2952E3]">
+                <Users size={20} />
+              </div>
+            </div>
+
+            {/* KPI Value & Loading / Error States */}
+            {loading ? (
+              <div className="py-4 space-y-2.5 animate-pulse">
+                <div className="h-10 w-28 bg-slate-100 rounded-lg"></div>
+                <div className="h-4 w-44 bg-slate-100 rounded-md"></div>
+              </div>
+            ) : error ? (
+              <div className="py-3 text-xs text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-200 space-y-2">
+                <p className="font-semibold">{error}</p>
+                <button
+                  onClick={fetchKpi}
+                  className="text-[11px] font-bold text-rose-700 underline cursor-pointer"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <div className="text-4xl font-extrabold text-slate-900 tracking-tight">
+                  {data?.value != null ? data.value.toLocaleString() : "0"}
+                </div>
+                <p className="text-xs font-medium text-slate-500">
+                  Applications received for ICFAI Tech School
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Academic Year Footer */}
+          <div className="px-6 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <span>Academic Year:</span>
+            <span className="font-bold text-slate-800 bg-white px-2.5 py-0.5 rounded-md border border-slate-200 shadow-2xs">
+              {academicYear}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Historical Visualization: Applications by Year Line Chart */}
+      <ApplicationsByYearChart />
+    </div>
+  );
+}
+
