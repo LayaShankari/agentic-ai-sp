@@ -55,3 +55,45 @@ def calculate_applications_by_year(db: Session) -> List[Dict[str, Any]]:
         }
         for row in results
     ]
+
+
+def calculate_total_seat_capacity(db: Session) -> dict:
+    rows = db.query(
+        Admission.allocated_branch,
+        func.max(Admission.seat_capacity)
+    ).filter(
+        Admission.program == "B.Tech",
+        Admission.allocated_branch.isnot(None)
+    ).group_by(
+        Admission.allocated_branch
+    ).all()
+
+    total_seat_capacity = sum(
+        int(capacity) for _, capacity in rows if capacity is not None
+    )
+
+    return {
+        "kpi": "Total Seat Capacity",
+        "value": total_seat_capacity,
+        "institution": "ICFAI Tech School",
+        "program": "B.Tech"
+    }
+    
+def calculate_seats_by_branch(db: Session) -> List[Dict[str, Any]]:
+    results = db.query(
+        Admission.allocated_branch,
+        func.count(Admission.student_id).label("seats_filled")
+    ).filter(
+        Admission.program == "B.Tech",
+        Admission.allocated_branch.isnot(None)
+    ).group_by(
+        Admission.allocated_branch
+    ).all()
+
+    return [
+        {
+            "branch": row.allocated_branch,
+            "seats_filled": int(row.seats_filled)
+        }
+        for row in results
+    ]

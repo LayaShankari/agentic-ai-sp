@@ -7,7 +7,9 @@ from backend.database import get_db, Base, engine
 from backend.seed_data import seed_admissions
 from backend.services.kpi_service import (
     calculate_total_applications,
-    calculate_applications_by_year
+    calculate_applications_by_year,
+    calculate_total_seat_capacity,
+    calculate_seats_by_branch
 )
 
 app = FastAPI(
@@ -53,3 +55,26 @@ def get_applications_by_year_kpi(db: Session = Depends(get_db)):
     Calculated as COUNT(DISTINCT Student_ID) GROUP BY admission_year from PostgreSQL database.
     """
     return calculate_applications_by_year(db=db)
+@app.get("/api/kpis/admissions/seats-by-branch")
+def get_seats_by_branch_kpi(db: Session = Depends(get_db)):
+    """
+    Returns number of filled seats for each allocated branch.
+    """
+    return calculate_seats_by_branch(db=db)
+
+
+@app.get("/api/kpis/admissions/total-seat-capacity")
+def get_total_seat_capacity_kpi(
+    db: Session = Depends(get_db)
+):
+    """
+    Returns Total Seat Capacity KPI for ICFAI Tech School B.Tech Admissions.
+    """
+    return calculate_total_seat_capacity(db=db)
+
+@app.get("/api/kpis/admissions/seats-by-branch")
+def get_seats_by_branch(db: Session = Depends(get_db)):
+    """
+    Returns the number of seats filled in each branch.
+    """
+    return calculate_seats_by_branch(db=db)

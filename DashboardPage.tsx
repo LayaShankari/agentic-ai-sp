@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import ApplicationsByYearChart from "./ApplicationsByYearChart";
+import SeatsByBranchChart from "./SeatsByBranchChart";
 
 type ModuleId =
   | "dashboard"
@@ -291,6 +292,10 @@ export default function DashboardPage() {
 
 function MainDashboardView({ academicYear }: { academicYear: string }) {
   const [totalApplications, setTotalApplications] = useState<number | null>(null);
+  const [totalSeatCapacity, setTotalSeatCapacity] = useState<number | null>(null);
+  const [seatsByBranch, setSeatsByBranch] = useState<
+  { branch: string; seats_filled: number }[]
+>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -304,6 +309,22 @@ function MainDashboardView({ academicYear }: { academicYear: string }) {
           const json = await response.json();
           setTotalApplications(json.value);
         }
+        const seatResponse = await fetch(
+    '/api/kpis/admissions/total-seat-capacity'
+);
+
+if (seatResponse.ok) {
+    const seatJson = await seatResponse.json();
+    setTotalSeatCapacity(seatJson.value);
+}
+const branchResponse = await fetch(
+    '/api/kpis/admissions/seats-by-branch'
+);
+
+if (branchResponse.ok) {
+    const branchJson = await branchResponse.json();
+    setSeatsByBranch(branchJson);
+}
       } catch (e) {
         console.error("Error fetching total applications for dashboard summary:", e);
       } finally {
@@ -335,9 +356,9 @@ function MainDashboardView({ academicYear }: { academicYear: string }) {
       </div>
 
       {/* Existing KPI Cards Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Applications KPI Card */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-3">
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Total Applications
@@ -349,7 +370,7 @@ function MainDashboardView({ academicYear }: { academicYear: string }) {
           {loading ? (
             <div className="h-8 w-24 bg-slate-100 animate-pulse rounded-lg"></div>
           ) : (
-            <div className="text-3xl font-extrabold text-slate-900">
+            <div className="text-2xl font-extrabold text-slate-900">
               {totalApplications != null ? totalApplications.toLocaleString() : "0"}
             </div>
           )}
@@ -358,8 +379,28 @@ function MainDashboardView({ academicYear }: { academicYear: string }) {
           </p>
         </div>
 
+       {/* Total Seat Capacity Card */}
+<div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2">
+  <div className="flex items-center justify-between">
+    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+      Total Seat Capacity
+    </span>
+    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+      <Database size={20} />
+    </div>
+  </div>
+
+  <div className="text-2xl font-extrabold text-slate-900">
+    {totalSeatCapacity != null ? totalSeatCapacity.toLocaleString() : "0"}
+  </div>
+
+  <p className="text-xs text-slate-500 font-medium">
+    Total available seats
+  </p>
+</div>
+       
         {/* Active Program Card */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-3">
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Active Program
@@ -368,14 +409,14 @@ function MainDashboardView({ academicYear }: { academicYear: string }) {
               <GraduationCap size={20} />
             </div>
           </div>
-          <div className="text-3xl font-extrabold text-slate-900">B.Tech</div>
+          <div className="text-2xl font-extrabold text-slate-900">B.Tech</div>
           <p className="text-xs text-slate-500 font-medium">
             ICFAI Tech School
           </p>
         </div>
 
         {/* Dataset Academic Years Card */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-3">
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Academic Years Tracked
@@ -384,7 +425,7 @@ function MainDashboardView({ academicYear }: { academicYear: string }) {
               <CheckCircle2 size={20} />
             </div>
           </div>
-          <div className="text-3xl font-extrabold text-slate-900">2023 – 2025</div>
+          <div className="text-2xl font-extrabold text-slate-900">2023 – 2025</div>
           <p className="text-xs text-slate-500 font-medium">
             Verified PostgreSQL dataset
           </p>
@@ -393,6 +434,7 @@ function MainDashboardView({ academicYear }: { academicYear: string }) {
 
       {/* Main Dashboard Visualization: Applications by Year Line Chart */}
       <ApplicationsByYearChart />
+      <SeatsByBranchChart />
     </div>
   );
 }
@@ -417,7 +459,7 @@ function SettingsModuleView() {
   return (
     <div className="space-y-6">
       {/* Login Activity Audit Log */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-4">
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div>
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
