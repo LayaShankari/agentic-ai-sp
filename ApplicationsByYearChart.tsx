@@ -43,21 +43,22 @@ export default function ApplicationsByYearChart() {
   }, []);
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-4">
+    <div className="relative overflow-hidden bg-gradient-to-br from-white via-sky-50/40 to-indigo-50/50 rounded-3xl p-6 md:p-7 border border-blue-100 shadow-lg shadow-blue-900/5 space-y-4">
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-sky-400 to-violet-500" />
       {/* Chart Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+      <div className="flex items-center justify-between border-b border-blue-100/80 pb-4">
         <div>
-          <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <TrendingUp size={20} className="text-[#2952E3]" />
+          <h3 className="text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20"><TrendingUp size={20} /></span>
             Total Applications by Year
           </h3>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
+          <p className="text-sm text-slate-500 font-medium mt-2">
             Application demand across years
           </p>
         </div>
         <button
           onClick={fetchChartData}
-          className="p-2 text-slate-400 hover:text-slate-700 rounded-xl border border-slate-200 hover:bg-slate-50 transition cursor-pointer"
+          className="p-2.5 text-blue-600 hover:text-blue-800 rounded-xl border border-blue-100 bg-white/80 hover:bg-blue-50 transition cursor-pointer shadow-sm"
           title="Refresh Chart Data"
         >
           <RefreshCw size={15} className={loading ? "animate-spin text-[#2952E3]" : ""} />
@@ -66,8 +67,8 @@ export default function ApplicationsByYearChart() {
 
       {/* Chart Content Area */}
       {loading ? (
-        <div className="h-72 flex flex-col items-center justify-center space-y-3 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-          <Loader2 className="w-8 h-8 text-[#2952E3] animate-spin" />
+        <div className="h-72 flex flex-col items-center justify-center space-y-3 bg-white/70 rounded-2xl border border-dashed border-blue-200">
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
           <p className="text-xs text-slate-500 font-medium">Fetching database records...</p>
         </div>
       ) : error ? (
@@ -93,14 +94,14 @@ export default function ApplicationsByYearChart() {
               data={data}
               margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+              <CartesianGrid strokeDasharray="4 5" stroke="#DBEAFE" vertical={false} />
               <XAxis
                 dataKey="academic_year"
                 stroke="#64748B"
                 fontSize={12}
                 fontWeight={600}
                 tickLine={false}
-                axisLine={{ stroke: '#E2E8F0' }}
+                axisLine={{ stroke: '#BFDBFE' }}
                 dy={10}
               />
               <YAxis
@@ -121,7 +122,7 @@ export default function ApplicationsByYearChart() {
                   color: '#FFFFFF',
                   padding: '10px 14px',
                 }}
-                itemStyle={{ color: '#60A5FA', fontWeight: 'bold', fontSize: '13px' }}
+                itemStyle={{ color: '#7DD3FC', fontWeight: 'bold', fontSize: '13px' }}
                 labelStyle={{ color: '#94A3B8', fontWeight: '600', fontSize: '11px', marginBottom: '4px' }}
                 formatter={(value: any) => [`${value} Applications`, 'Total Applications']}
                 labelFormatter={(label) => `Academic Year: ${label}`}
@@ -130,10 +131,10 @@ export default function ApplicationsByYearChart() {
                 type="monotone"
                 dataKey="total_applications"
                 name="Total Applications"
-                stroke="#2952E3"
-                strokeWidth={3}
-                dot={{ r: 6, fill: '#2952E3', stroke: '#FFFFFF', strokeWidth: 2 }}
-                activeDot={{ r: 8, fill: '#1D4ED8', stroke: '#FFFFFF', strokeWidth: 3 }}
+                stroke="#4F46E5"
+                strokeWidth={4}
+                dot={{ r: 6, fill: '#4F46E5', stroke: '#FFFFFF', strokeWidth: 3 }}
+                activeDot={{ r: 8, fill: '#0891B2', stroke: '#FFFFFF', strokeWidth: 3 }}
               />
             </LineChart>
           </ResponsiveContainer>

@@ -5,11 +5,17 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db, Base, engine
 from backend.seed_data import seed_admissions
+from backend.attendance_api import router as attendance_router
+from backend.academics_api import router as academics_router
 from backend.services.kpi_service import (
     calculate_total_applications,
     calculate_applications_by_year,
     calculate_total_seat_capacity,
-    calculate_seats_by_branch
+    calculate_seats_by_branch,
+    calculate_first_choice_allocation_rate,
+    calculate_second_choice_allocation_rate,
+    calculate_seat_utilization_rate,
+    calculate_branch_demand_index,
 )
 
 app = FastAPI(
@@ -26,6 +32,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(attendance_router)
+app.include_router(academics_router)
 
 @app.on_event("startup")
 def startup_event():
@@ -71,6 +80,38 @@ def get_total_seat_capacity_kpi(
     Returns Total Seat Capacity KPI for ICFAI Tech School B.Tech Admissions.
     """
     return calculate_total_seat_capacity(db=db)
+
+
+@app.get("/api/kpis/admissions/first-choice-allocation-rate")
+def get_first_choice_allocation_rate(
+    academic_year: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    return calculate_first_choice_allocation_rate(db=db, academic_year=academic_year)
+
+
+@app.get("/api/kpis/admissions/second-choice-allocation-rate")
+def get_second_choice_allocation_rate(
+    academic_year: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    return calculate_second_choice_allocation_rate(db=db, academic_year=academic_year)
+
+
+@app.get("/api/kpis/admissions/seat-utilization-rate")
+def get_seat_utilization_rate(
+    academic_year: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    return calculate_seat_utilization_rate(db=db, academic_year=academic_year)
+
+
+@app.get("/api/kpis/admissions/branch-demand-index")
+def get_branch_demand_index(
+    academic_year: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    return calculate_branch_demand_index(db=db, academic_year=academic_year)
 
 @app.get("/api/kpis/admissions/seats-by-branch")
 def get_seats_by_branch(db: Session = Depends(get_db)):
