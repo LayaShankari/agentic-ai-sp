@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Integer
+from sqlalchemy import Column, String, Integer, Boolean, DateTime
+from datetime import datetime
 from backend.database import Base
 
 class Admission(Base):
@@ -28,3 +29,29 @@ class Admission(Base):
             "allocated_branch": self.allocated_branch,
             "seat_capacity": self.seat_capacity,
         }
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="faculty")  # "admin" or "faculty"
+    name = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=True)
+    reset_token = Column(String, nullable=True)
+    reset_token_expires = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "role": self.role,
+            "name": self.name,
+            "is_active": self.is_active,
+            "is_verified": self.is_verified,
+        }
+

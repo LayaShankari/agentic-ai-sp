@@ -7,6 +7,7 @@ from backend.database import get_db, Base, engine
 from backend.seed_data import seed_admissions
 from backend.attendance_api import router as attendance_router
 from backend.academics_api import router as academics_router
+from backend.auth_api import router as auth_router, seed_users
 from backend.services.kpi_service import (
     calculate_total_applications,
     calculate_applications_by_year,
@@ -33,6 +34,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(attendance_router)
 app.include_router(academics_router)
 
@@ -41,6 +43,7 @@ def startup_event():
     # Initialize DB tables and seed data on app start
     Base.metadata.create_all(bind=engine)
     seed_admissions()
+    seed_users()
 
 @app.get("/api/health")
 def health_check():

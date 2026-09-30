@@ -6,11 +6,8 @@ import {
   GraduationCap,
   CalendarCheck,
   Settings,
-  FileText,
   HelpCircle,
-  Search,
   Bell,
-  ChevronDown,
   LogOut,
   Menu,
   User,
@@ -22,6 +19,18 @@ import {
   RefreshCw,
   Loader2,
   Target,
+  KeyRound,
+  Lock,
+  AlertCircle,
+  Sparkles,
+  Bot,
+  TrendingUp,
+  AlertTriangle,
+  Lightbulb,
+  Briefcase,
+  ArrowRight,
+  BookOpen,
+  X,
 } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useAuth } from "./AuthContext";
@@ -36,7 +45,6 @@ type ModuleId =
   | "academics"
   | "attendance"
   | "settings"
-  | "reports"
   | "help";
 
 interface ModuleConfig {
@@ -78,12 +86,6 @@ const MODULES: ModuleConfig[] = [
     description: "User Login Logs, Database Setup & System Settings",
   },
   {
-    id: "reports",
-    label: "Reports",
-    icon: FileText,
-    description: "Custom Data Reports & Export Analytics",
-  },
-  {
     id: "help",
     label: "Help & Support",
     icon: HelpCircle,
@@ -91,11 +93,80 @@ const MODULES: ModuleConfig[] = [
   },
 ];
 
+interface RecommendationItem {
+  id: string;
+  category: "Admissions" | "Attendance" | "Academics" | "NPTEL/Internship" | "Placement";
+  priority: "High" | "Medium" | "Low";
+  title: string;
+  condition: string;
+  recommendation: string;
+  metricEvidence: string;
+  icon: typeof Users;
+  actionText: string;
+}
+
+const AI_RECOMMENDATIONS: RecommendationItem[] = [
+  {
+    id: "rec-1",
+    category: "Admissions",
+    priority: "High",
+    title: "Increase CSE Seat Intake",
+    condition: "CSE first-choice demand (31 applicants) exceeds available seats (30 seats).",
+    recommendation: "Increase CSE intake capacity for the next academic year.",
+    metricEvidence: "CSE: 31 First Choice Demand vs 30 Seats (100% Full)",
+    icon: Users,
+    actionText: "Review Intake",
+  },
+  {
+    id: "rec-2",
+    category: "Attendance",
+    priority: "High",
+    title: "Attendance Intervention Alert",
+    condition: "Students falling below 65% attendance require immediate intervention.",
+    recommendation: "Send attendance alerts and schedule parent-faculty meetings.",
+    metricEvidence: "Attendance Alert: < 65% Minimum Attendance Threshold",
+    icon: CalendarCheck,
+    actionText: "Send Alerts",
+  },
+  {
+    id: "rec-3",
+    category: "Academics",
+    priority: "Medium",
+    title: "Schedule Remedial Classes",
+    condition: "Students scoring below 40 marks are at academic risk in core subjects.",
+    recommendation: "Conduct remedial classes and additional faculty tutoring.",
+    metricEvidence: "Academic Risk: Scoring Below 40 Marks",
+    icon: GraduationCap,
+    actionText: "Schedule Remedials",
+  },
+  {
+    id: "rec-4",
+    category: "NPTEL/Internship",
+    priority: "Medium",
+    title: "Boost NPTEL & Internship Participation",
+    condition: "Student participation in certified NPTEL courses needs improvement.",
+    recommendation: "Run department awareness workshops and faculty mentoring.",
+    metricEvidence: "Participation Tracking: Certified NPTEL & Internships",
+    icon: BookOpen,
+    actionText: "Run Workshops",
+  },
+  {
+    id: "rec-5",
+    category: "Placement",
+    priority: "Medium",
+    title: "Strengthen Placement Conversion",
+    condition: "Internship-to-placement transition rate needs targeted support.",
+    recommendation: "Provide technical interview bootcamps and expand hiring partnerships.",
+    metricEvidence: "Conversion Track: Internship to Full-Time Hiring",
+    icon: Briefcase,
+    actionText: "Expand Hiring",
+  },
+];
+
 export default function DashboardPage() {
   const [activeModule, setActiveModule] = useState<ModuleId>("dashboard");
-  const [academicYear, setAcademicYear] = useState("All Academic Years");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -172,9 +243,7 @@ export default function DashboardPage() {
                     <div className="text-[11px] text-slate-400 font-medium capitalize">
                       {user?.role === "admin"
                         ? "Super Admin"
-                        : user?.role === "faculty"
-                        ? "Faculty Member"
-                        : "Viewer"}
+                        : "Faculty Member"}
                     </div>
                   </div>
                 )}
@@ -215,46 +284,125 @@ export default function DashboardPage() {
 
             {/* Right Header Tools */}
             <div className="flex items-center gap-4">
-              {/* Year Dropdown */}
-              <div className="relative hidden md:block">
-                <select
-                  value={academicYear}
-                  onChange={(e) => setAcademicYear(e.target.value)}
-                  className="appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 pr-9 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-brand-blue/30 cursor-pointer"
+              {/* Academic Year Badge */}
+              <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs">
+                <span>All Academic Years</span>
+              </div>
+
+              {/* Notifications Button & Popover Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowNotifications((s) => !s)}
+                  className={`relative p-2 rounded-xl border transition cursor-pointer ${
+                    showNotifications
+                      ? "bg-blue-50 text-brand-blue border-brand-blue/40 shadow-xs"
+                      : "text-slate-500 hover:text-slate-800 border-slate-200/80 hover:bg-slate-50"
+                  }`}
+                  title="Institutional AI Alerts & Recommendations"
                 >
-                  <option value="All Academic Years">All Academic Years</option>
-                  <option value="2025">2025</option>
-                  <option value="2024">2024</option>
-                  <option value="2023">2023</option>
-                </select>
-                <ChevronDown
-                  size={14}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-                />
-              </div>
+                  <Bell size={18} />
+                  <span className="absolute -top-1 -right-1 bg-[#E31E24] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
+                    {AI_RECOMMENDATIONS.length}
+                  </span>
+                </button>
 
-              {/* Search Bar */}
-              <div className="relative hidden sm:block w-56 md:w-64">
-                <Search
-                  size={16}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search anything..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:bg-white transition"
-                />
-              </div>
+                {/* Notifications Dropdown Modal / Popover */}
+                {showNotifications && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowNotifications(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                      {/* Dropdown Header */}
+                      <div className="p-4 bg-[#0A1F44] text-white flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-blue-300">
+                            <Bot size={18} />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                              Institutional AI Alerts
+                              <span className="bg-[#E31E24] text-white text-[10px] px-1.5 py-0.2 rounded-full font-extrabold">
+                                5
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-300">
+                              Real-time recommendations
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowNotifications(false)}
+                          className="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
 
-              {/* Notifications */}
-              <button className="relative text-slate-500 hover:text-slate-800 p-2 rounded-xl border border-slate-200/80 hover:bg-slate-50 transition">
-                <Bell size={18} />
-                <span className="absolute -top-1 -right-1 bg-[#E31E24] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
-                  5
-                </span>
-              </button>
+                      {/* Notification Insights List */}
+                      <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100 p-1">
+                        {AI_RECOMMENDATIONS.map((rec) => {
+                          const Icon = rec.icon;
+                          const priorityBadge =
+                            rec.priority === "High"
+                              ? "bg-rose-50 text-rose-700 border-rose-200"
+                              : "bg-amber-50 text-amber-700 border-amber-200";
+
+                          return (
+                            <div
+                              key={rec.id}
+                              onClick={() => {
+                                setActiveModule("dashboard");
+                                setShowNotifications(false);
+                              }}
+                              className="p-3 hover:bg-slate-50 transition rounded-xl cursor-pointer space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="w-6 h-6 rounded-lg bg-blue-50 text-brand-blue flex items-center justify-center shrink-0">
+                                    <Icon size={13} />
+                                  </span>
+                                  <span className="text-xs font-bold text-slate-800 truncate">
+                                    {rec.title}
+                                  </span>
+                                </div>
+                                <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full border shrink-0 ${priorityBadge}`}>
+                                  {rec.priority}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-600 leading-snug pl-7">
+                                {rec.recommendation}
+                              </p>
+                              <div className="text-[10px] text-brand-blue font-medium pl-7 flex items-center gap-1">
+                                <TrendingUp size={11} />
+                                <span className="truncate">{rec.metricEvidence}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveModule("dashboard");
+                            setShowNotifications(false);
+                          }}
+                          className="w-full bg-brand-blue hover:bg-blue-700 text-white text-xs font-semibold py-2 rounded-xl transition shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <Sparkles size={13} />
+                          <span>View All 5 Insights in Dashboard</span>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
 
               {/* User Profile Header Badge */}
               <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
@@ -266,7 +414,7 @@ export default function DashboardPage() {
                     {user?.name || "Admin User"}
                   </div>
                   <div className="text-[10px] text-slate-500 font-medium">
-                    {user?.role === "admin" ? "Super Admin" : user?.role || "Admin"}
+                    {user?.role === "admin" ? "Super Admin" : "Faculty Member"}
                   </div>
                 </div>
               </div>
@@ -275,18 +423,17 @@ export default function DashboardPage() {
 
           {/* Module Content View Renderer */}
           <main className="p-6 flex-1">
-            {activeModule === "dashboard" && <MainDashboardView academicYear={academicYear} />}
-            {activeModule === "admissions" && <AdmissionsModuleView academicYear={academicYear} />}
+            {activeModule === "dashboard" && <MainDashboardView academicYear="All Academic Years" />}
+            {activeModule === "admissions" && <AdmissionsModuleView academicYear="All Academic Years" />}
             {activeModule === "academics" && <AcademicsPage />}
             {activeModule === "attendance" && <AttendancePage />}
             {activeModule === "settings" && <SettingsModuleView />}
-            {activeModule === "reports" && <PlainModuleView title="Reports" />}
             {activeModule === "help" && <PlainModuleView title="Help & Support" />}
           </main>
 
           {/* Footer Copyright */}
           <footer className="px-6 py-4 text-center text-xs text-slate-400 font-medium border-t border-slate-200/60 bg-white">
-            © 2025 ICFAI Tech School. All rights reserved.
+            ICFAI Tech School — Academic Project • For Educational Purposes Only
           </footer>
         </div>
       </div>
@@ -358,6 +505,9 @@ if (branchResponse.ok) {
           </span>
         </div>
       </div>
+
+      {/* 8. Agentic AI Recommendation Engine — Separate from KPIs */}
+      <AgenticRecommendationsWidget />
 
       {/* Existing KPI Cards Section */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -457,11 +607,345 @@ function PlainModuleView({ title }: { title: string }) {
   );
 }
 
+function AgenticRecommendationsWidget() {
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [actionedIds, setActionedIds] = useState<Record<string, boolean>>({});
+  const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
+
+  const categories = ["All", "Admissions", "Attendance", "Academics", "NPTEL/Internship", "Placement"];
+
+  const filteredRecs = selectedCategory === "All"
+    ? AI_RECOMMENDATIONS
+    : AI_RECOMMENDATIONS.filter((r) => r.category === selectedCategory);
+
+  const handleAction = (rec: RecommendationItem) => {
+    setActionedIds((prev) => ({ ...prev, [rec.id]: !prev[rec.id] }));
+    const newStatus = !actionedIds[rec.id];
+    setFeedbackToast(
+      newStatus
+        ? `Initiated action for "${rec.title}".`
+        : `Reset status for "${rec.title}".`
+    );
+    setTimeout(() => setFeedbackToast(null), 2500);
+  };
+
+  return (
+    <div className="relative overflow-hidden bg-white rounded-3xl border border-blue-100 shadow-lg shadow-blue-900/5 p-6 md:p-8 space-y-6">
+      {/* Decorative top accent gradient */}
+      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#0A1F44] via-[#2952E3] to-cyan-400" />
+
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+        <div>
+          <div className="flex items-center gap-2.5 mb-1.5">
+            <span className="w-8 h-8 rounded-xl bg-indigo-950 text-indigo-300 border border-indigo-700/40 flex items-center justify-center shadow-xs">
+              <Bot size={18} />
+            </span>
+            <span className="text-xs font-bold uppercase tracking-wider bg-indigo-50 text-[#2952E3] px-2.5 py-0.5 rounded-full border border-indigo-100">
+              System Capability & Output
+            </span>
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+              <Sparkles size={11} className="text-amber-500 fill-amber-500" />
+              5 Active Insights
+            </span>
+          </div>
+          <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">
+            Agentic AI Recommendation Engine
+          </h2>
+        </div>
+
+        {/* Category Filter Chips */}
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-200/80">
+          {categories.map((cat) => {
+            const isSelected = selectedCategory === cat;
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  isSelected
+                    ? "bg-[#0A1F44] text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+                }`}
+              >
+                {cat}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Toast Alert Feedback */}
+      {feedbackToast && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 animate-in fade-in duration-200">
+          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+          <span>{feedbackToast}</span>
+        </div>
+      )}
+
+      {/* Recommendation Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredRecs.map((rec) => {
+          const Icon = rec.icon;
+          const isActioned = !!actionedIds[rec.id];
+
+          const priorityBadge =
+            rec.priority === "High"
+              ? "bg-rose-50 text-rose-700 border-rose-200"
+              : rec.priority === "Medium"
+              ? "bg-amber-50 text-amber-700 border-amber-200"
+              : "bg-emerald-50 text-emerald-700 border-emerald-200";
+
+          return (
+            <div
+              key={rec.id}
+              className={`rounded-2xl border transition-all duration-200 p-5 flex flex-col justify-between space-y-4 ${
+                isActioned
+                  ? "bg-emerald-50/40 border-emerald-200 shadow-2xs"
+                  : "bg-white border-slate-200/80 hover:border-blue-200 hover:shadow-md shadow-2xs"
+              }`}
+            >
+              <div className="space-y-3">
+                {/* Top Card Meta */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#2952E3] border border-blue-100 flex items-center justify-center">
+                      <Icon size={16} />
+                    </span>
+                    <span className="text-xs font-bold text-slate-700">{rec.category}</span>
+                  </div>
+                  <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border ${priorityBadge}`}>
+                    {rec.priority} Priority
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-sm font-bold text-slate-900 leading-snug">
+                  {rec.title}
+                </h3>
+
+                {/* Condition */}
+                <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-2.5 text-xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                    Condition:
+                  </span>
+                  <p className="text-slate-700 leading-relaxed font-medium">
+                    {rec.condition}
+                  </p>
+                </div>
+
+                {/* Recommendation */}
+                <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-2.5 text-xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#2952E3] flex items-center gap-1 mb-0.5">
+                    <Lightbulb size={12} className="text-amber-500 fill-amber-500" />
+                    Recommendation:
+                  </span>
+                  <p className="text-slate-800 leading-relaxed font-semibold">
+                    {rec.recommendation}
+                  </p>
+                </div>
+
+                {/* Metric Evidence Tag */}
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium pt-1">
+                  <TrendingUp size={13} className="text-slate-400 shrink-0" />
+                  <span className="truncate">{rec.metricEvidence}</span>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-400">
+                  {isActioned ? "Status: Action Initiated" : "Status: Pending"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleAction(rec)}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                    isActioned
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                      : "bg-[#0A1F44] hover:bg-[#1A386D] text-white shadow-2xs"
+                  }`}
+                >
+                  {isActioned ? (
+                    <>
+                      <CheckCircle2 size={13} />
+                      <span>Actioned</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{rec.actionText}</span>
+                      <ArrowRight size={13} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function SettingsModuleView() {
-  const { loginLogs, clearLogs } = useAuth();
+  const { user, loginLogs, clearLogs } = useAuth();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changeError, setChangeError] = useState("");
+  const [changeSuccess, setChangeSuccess] = useState("");
+  const [isChanging, setIsChanging] = useState(false);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangeError("");
+    setChangeSuccess("");
+
+    if (!user?.email) {
+      setChangeError("No active user session found.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setChangeError("New password must be at least 6 characters long.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setChangeError("New passwords do not match.");
+      return;
+    }
+
+    setIsChanging(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setChangeSuccess("Password changed successfully!");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        setChangeError(data.detail || "Failed to update password. Verify your current password.");
+      }
+    } catch {
+      setChangeError("Failed to connect to authentication server.");
+    } finally {
+      setIsChanging(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
+      {/* Change Password Card */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-4">
+        <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-brand-blue">
+            <KeyRound size={20} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Security & Password Management</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Update password for <span className="font-semibold text-slate-700">{user?.email}</span> ({user?.role === "admin" ? "Super Admin" : "Faculty Member"}).
+            </p>
+          </div>
+        </div>
+
+        {changeError && (
+          <div className="flex items-center gap-2 text-xs text-brand-red bg-red-50 border border-red-100 p-3 rounded-xl">
+            <AlertCircle size={16} className="shrink-0" />
+            <span>{changeError}</span>
+          </div>
+        )}
+
+        {changeSuccess && (
+          <div className="flex items-center gap-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
+            <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+            <span>{changeSuccess}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Current Password
+            </label>
+            <div className="relative">
+              <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="password"
+                required
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue bg-slate-50/50 focus:bg-white"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              New Password
+            </label>
+            <div className="relative">
+              <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 6 characters"
+                className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue bg-slate-50/50 focus:bg-white"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Confirm Password
+            </label>
+            <div className="relative">
+              <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                className="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue bg-slate-50/50 focus:bg-white"
+              />
+            </div>
+          </div>
+
+          <div className="md:col-span-3 flex justify-end">
+            <button
+              type="submit"
+              disabled={isChanging}
+              className="bg-brand-blue hover:bg-blue-700 text-white text-xs font-semibold px-5 py-2.5 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-75 flex items-center gap-2"
+            >
+              {isChanging ? (
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <KeyRound size={14} />
+                  <span>Update Password</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
       {/* Login Activity Audit Log */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">

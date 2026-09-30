@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Mail,
@@ -7,22 +7,32 @@ import {
   EyeOff,
   ShieldCheck,
   User,
-  EyeIcon,
   Sparkles,
   HelpCircle,
   LogIn,
   X,
   CheckCircle2,
   AlertCircle,
-  Bot
+  Bot,
+  RefreshCw,
+  KeyRound,
 } from "lucide-react";
 import { useAuth, type Role } from "./AuthContext";
 
 const ROLE_TABS: { id: Role; label: string; icon: typeof ShieldCheck }[] = [
   { id: "admin", label: "Admin", icon: ShieldCheck },
   { id: "faculty", label: "Faculty", icon: User },
-  { id: "viewer", label: "Viewer", icon: EyeIcon },
 ];
+
+const APPROVED_DOMAINS = ["icfai.edu", "icfai.ac.in", "ifheindia.org", "edu.in", "ac.in"];
+
+function isCollegeEmail(email: string): boolean {
+  if (!email || !email.includes("@")) return false;
+  const parts = email.trim().toLowerCase().split("@");
+  if (parts.length !== 2) return false;
+  const domain = parts[1];
+  return APPROVED_DOMAINS.some((d) => domain === d || domain.endsWith("." + d));
+}
 
 export default function LoginPage() {
   const [activeRole, setActiveRole] = useState<Role>("admin");
@@ -33,50 +43,217 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // CAPTCHA states
+  const [captchaId, setCaptchaId] = useState("");
+  const [captchaQuestion, setCaptchaQuestion] = useState("Loading verification...");
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [isCaptchaLoading, setIsCaptchaLoading] = useState(false);
+
   // Modal dialog states
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
+
+  // Forgot / Reset Password state flow
+  const [forgotStep, setForgotStep] = useState<"request" | "verify">("request");
   const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState("");
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Allow anybody to login smoothly
+  // Fetch a new CAPTCHA challenge from FastAPI backend
+  const fetchCaptcha = async () => {
+    setIsCaptchaLoading(true);
+    try {
+      const res = await fetch("/api/auth/captcha-challenge");
+      if (res.ok) {
+        const data = await res.json();
+        setCaptchaId(data.captcha_id);
+        setCaptchaQuestion(data.question);
+        setCaptchaAnswer("");
+      } else {
+        // Fallback local challenge if API unreachable
+        setCaptchaId("local-fallback-challenge");
+        setCaptchaQuestion("4 + 3 = ?");
+        setCaptchaAnswer("");
+      }
+    } catch {
+      setCaptchaId("local-fallback-challenge");
+      setCaptchaQuestion("4 + 3 = ?");
+      setCaptchaAnswer("");
+    } finally {
+      setIsCaptchaLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCaptcha();
+  }, []);
+
+  // Secure Institutional Login
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError("Please enter your official college email address.");
+      return;
+    }
+
+    if (!isCollegeEmail(trimmedEmail)) {
+      setError("Access restricted. Please use an authorized institutional email (@icfai.edu, @icfai.ac.in, etc.).");
+      return;
+    }
+
+    if (!password) {
+      setError("Please enter your account password.");
+      return;
+    }
+
+    if (!captchaAnswer.trim()) {
+      setError("Please complete the CAPTCHA verification challenge.");
+      return;
+    }
+
     setIsLoading(true);
 
-    const userEmail = email.trim() || `${activeRole}@icfai.edu`;
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: trimmedEmail,
+          password: password,
+          role: activeRole,
+          captcha_id: captchaId,
+          captcha_answer: captchaAnswer.trim(),
+        }),
+      });
 
-    setTimeout(() => {
-      setIsLoading(false);
-      login(userEmail, activeRole);
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.detail || "Authentication failed. Please verify your credentials.");
+        fetchCaptcha();
+        setIsLoading(false);
+        return;
+      }
+
+      // Backend role is strictly enforced from trusted database record
+      const trustedRole: Role = data.user.role === "admin" ? "admin" : "faculty";
+      login(data.user.email, trustedRole, data.user.name, data.token);
+
       navigate("/dashboard");
-    }, 300);
+    } catch {
+      setError("Unable to connect to the authentication server. Please check your network connection.");
+      fetchCaptcha();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Redirect to official Google sign-in page
-  const handleGoogleSignIn = () => {
-    window.location.href = "https://accounts.google.com/ServiceLogin";
-  };
-
-  const handleForgotSubmit = (e: FormEvent) => {
+  // Forgot Password: Step 1 - Request 6-digit verification code
+  const handleForgotRequest = async (e: FormEvent) => {
     e.preventDefault();
-    if (!forgotEmail) return;
-    setForgotSuccess(true);
-    setTimeout(() => {
-      setForgotSuccess(false);
-      setShowForgotModal(false);
-      setForgotEmail("");
-    }, 2000);
+    setForgotError("");
+    setForgotSuccess("");
+
+    const trimmedEmail = forgotEmail.trim();
+    if (!trimmedEmail || !isCollegeEmail(trimmedEmail)) {
+      setForgotError("Please enter a valid institutional college email address (@icfai.edu, @icfai.ac.in).");
+      return;
+    }
+
+    setIsForgotLoading(true);
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setForgotStep("verify");
+        if (data.reset_code) {
+          setResetCode(data.reset_code);
+          setForgotSuccess(`Verification code ${data.reset_code} generated for ${trimmedEmail}.`);
+        } else {
+          setForgotSuccess(data.message || "Verification code sent to your registered email.");
+        }
+      } else {
+        setForgotError(data.detail || "Failed to process password reset request.");
+      }
+    } catch {
+      setForgotError("Unable to connect to password reset service.");
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  // Forgot Password: Step 2 - Verify code and set new password
+  const handleResetSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setForgotError("");
+
+    if (!resetCode.trim()) {
+      setForgotError("Please enter the 6-digit verification code.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setForgotError("New password must be at least 6 characters long.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setForgotError("Passwords do not match. Please re-enter.");
+      return;
+    }
+
+    setIsForgotLoading(true);
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: forgotEmail.trim(),
+          reset_code: resetCode.trim(),
+          new_password: newPassword,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setForgotSuccess("Password reset successfully! You can now log in with your new password.");
+        setPassword(newPassword);
+        setEmail(forgotEmail.trim());
+        setTimeout(() => {
+          setShowForgotModal(false);
+          setForgotStep("request");
+          setForgotSuccess("");
+          setResetCode("");
+          setNewPassword("");
+          setConfirmPassword("");
+        }, 2200);
+      } else {
+        setForgotError(data.detail || "Invalid or expired verification code.");
+      }
+    } catch {
+      setForgotError("Failed to reset password. Please try again.");
+    } finally {
+      setIsForgotLoading(false);
+    }
   };
 
   const setDemoCredentials = (role: Role) => {
     setActiveRole(role);
     setEmail(`${role}@icfai.edu`);
-    setPassword("password123");
+    setPassword(role === "admin" ? "admin123" : "faculty123");
     setError("");
   };
 
@@ -159,8 +336,8 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              {/* Role tabs */}
-              <div className="grid grid-cols-3 gap-1.5 bg-slate-100/90 rounded-xl p-1 mt-6 border border-slate-200/60">
+              {/* Role tabs: Admin & Faculty only */}
+              <div className="grid grid-cols-2 gap-1.5 bg-slate-100/90 rounded-xl p-1 mt-6 border border-slate-200/60">
                 {ROLE_TABS.map(({ id, label, icon: Icon }) => {
                   const isActive = activeRole === id;
                   return (
@@ -198,7 +375,7 @@ export default function LoginPage() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email"
+                      placeholder="Enter your college email (e.g. admin@icfai.edu)"
                       className="w-full border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue transition bg-slate-50/50 focus:bg-white"
                     />
                   </div>
@@ -227,6 +404,38 @@ export default function LoginPage() {
                   </div>
                 </div>
 
+                {/* CAPTCHA Verification Component */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <ShieldCheck size={14} className="text-brand-blue" />
+                      Security Verification (CAPTCHA)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={fetchCaptcha}
+                      disabled={isCaptchaLoading}
+                      className="text-[11px] text-brand-blue hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                      title="Refresh verification challenge"
+                    >
+                      <RefreshCw size={11} className={isCaptchaLoading ? "animate-spin" : ""} />
+                      Refresh
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 shrink-0 select-none tracking-wider shadow-inner min-w-[100px] text-center">
+                      {isCaptchaLoading ? "..." : captchaQuestion}
+                    </div>
+                    <input
+                      type="text"
+                      value={captchaAnswer}
+                      onChange={(e) => setCaptchaAnswer(e.target.value)}
+                      placeholder="Enter answer"
+                      className="flex-1 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue transition bg-slate-50/50 focus:bg-white"
+                    />
+                  </div>
+                </div>
+
                 {error && (
                   <div className="flex items-center gap-2 text-sm text-brand-red bg-red-50 border border-red-100 p-2.5 rounded-lg">
                     <AlertCircle size={16} className="shrink-0" />
@@ -246,8 +455,13 @@ export default function LoginPage() {
                   </label>
                   <button
                     type="button"
-                    onClick={() => setShowForgotModal(true)}
-                    className="text-brand-blue font-semibold hover:underline text-sm"
+                    onClick={() => {
+                      setShowForgotModal(true);
+                      setForgotStep("request");
+                      setForgotError("");
+                      setForgotSuccess("");
+                    }}
+                    className="text-brand-blue font-semibold hover:underline text-sm cursor-pointer"
                   >
                     Forgot Password?
                   </button>
@@ -268,40 +482,6 @@ export default function LoginPage() {
                   )}
                 </button>
               </form>
-
-              {/* Divider */}
-              <div className="flex items-center gap-3 my-5">
-                <div className="h-px bg-slate-200 flex-1" />
-                <span className="text-xs text-slate-400 font-medium">or continue with</span>
-                <div className="h-px bg-slate-200 flex-1" />
-              </div>
-
-              {/* Google Sign In */}
-              <button
-                type="button"
-                onClick={handleGoogleSignIn}
-                className="w-full border border-slate-200 rounded-xl py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center justify-center gap-2.5 shadow-2xs cursor-pointer active:scale-[0.99]"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                  />
-                </svg>
-                Sign in with Google
-              </button>
             </div>
           </div>
         </div>
@@ -309,7 +489,7 @@ export default function LoginPage() {
 
       {/* Footer copyright */}
       <footer className="text-center text-xs text-slate-500 font-medium pb-2">
-        © 2025 ICFAI Tech School. All rights reserved.
+        ICFAI Tech School — Academic Project • For Educational Purposes Only
       </footer>
 
       {/* Help Modal */}
@@ -318,7 +498,7 @@ export default function LoginPage() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-150">
             <button
               onClick={() => setShowHelpModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
             >
               <X size={18} />
             </button>
@@ -327,33 +507,36 @@ export default function LoginPage() {
               <span>Authentication Support</span>
             </div>
             <p className="text-slate-600 text-sm leading-relaxed mb-4">
-              Welcome to the <strong>ICFAI Tech School Decision Engine</strong>. Select any role tab or click <strong>Sign in with Google</strong> to authenticate immediately.
+              Welcome to the <strong>ICFAI Tech School Decision Engine</strong>. Sign in using your authorized institutional college credentials and solve the CAPTCHA verification to proceed.
             </p>
             <div className="space-y-2 mb-5">
               <button
+                type="button"
                 onClick={() => {
                   setDemoCredentials("admin");
                   setShowHelpModal(false);
                 }}
-                className="w-full flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 transition"
+                className="w-full flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer"
               >
-                <span>Admin Demo</span>
+                <span>Admin Account</span>
                 <span className="text-brand-blue font-mono">admin@icfai.edu</span>
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setDemoCredentials("faculty");
                   setShowHelpModal(false);
                 }}
-                className="w-full flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 transition"
+                className="w-full flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer"
               >
-                <span>Faculty Demo</span>
+                <span>Faculty Account</span>
                 <span className="text-brand-blue font-mono">faculty@icfai.edu</span>
               </button>
             </div>
             <button
+              type="button"
               onClick={() => setShowHelpModal(false)}
-              className="w-full bg-slate-900 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-slate-800 transition"
+              className="w-full bg-slate-900 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-slate-800 transition cursor-pointer"
             >
               Close
             </button>
@@ -364,39 +547,130 @@ export default function LoginPage() {
       {/* Forgot Password Modal */}
       {showForgotModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-150">
             <button
               onClick={() => setShowForgotModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
             >
               <X size={18} />
             </button>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Reset your password</h3>
+            <div className="flex items-center gap-2.5 mb-2">
+              <KeyRound className="text-brand-blue" size={20} />
+              <h3 className="text-lg font-bold text-slate-900">
+                {forgotStep === "request" ? "Reset your password" : "Enter Verification Code"}
+              </h3>
+            </div>
             <p className="text-xs text-slate-500 mb-4">
-              Enter your official institutional email address and we'll send you instructions to reset your password.
+              {forgotStep === "request"
+                ? "Enter your official institutional college email address to receive a secure time-limited verification code."
+                : `Enter the 6-digit verification code issued for ${forgotEmail} along with your new password.`}
             </p>
 
-            {forgotSuccess ? (
-              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-sm flex items-center gap-3">
-                <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
-                <span>Password reset link sent to {forgotEmail}!</span>
+            {forgotError && (
+              <div className="mb-4 flex items-center gap-2 text-xs text-brand-red bg-red-50 border border-red-100 p-2.5 rounded-lg">
+                <AlertCircle size={15} className="shrink-0" />
+                <span>{forgotError}</span>
               </div>
-            ) : (
-              <form onSubmit={handleForgotSubmit} className="space-y-4">
-                <input
-                  type="email"
-                  required
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  placeholder="name@icfai.edu"
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue"
-                />
+            )}
+
+            {forgotSuccess && (
+              <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-xl text-xs flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                <span>{forgotSuccess}</span>
+              </div>
+            )}
+
+            {forgotStep === "request" ? (
+              <form onSubmit={handleForgotRequest} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    College Email Address
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="name@icfai.edu"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue bg-slate-50/50 focus:bg-white"
+                  />
+                </div>
                 <button
                   type="submit"
-                  className="w-full bg-brand-blue text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-blue-700 transition"
+                  disabled={isForgotLoading}
+                  className="w-full bg-brand-blue text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-blue-700 transition cursor-pointer disabled:opacity-75 flex items-center justify-center gap-2"
                 >
-                  Send Reset Link
+                  {isForgotLoading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    "Send Verification Code"
+                  )}
                 </button>
+              </form>
+            ) : (
+              <form onSubmit={handleResetSubmit} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    6-Digit Verification Code
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    value={resetCode}
+                    onChange={(e) => setResetCode(e.target.value)}
+                    placeholder="e.g. 123456"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm font-mono tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue bg-slate-50/50 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter at least 6 characters"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue bg-slate-50/50 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue bg-slate-50/50 focus:bg-white"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setForgotStep("request")}
+                    className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition cursor-pointer"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isForgotLoading}
+                    className="flex-1 bg-brand-blue hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-sm transition cursor-pointer disabled:opacity-75 flex items-center justify-center gap-2"
+                  >
+                    {isForgotLoading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      "Confirm & Reset"
+                    )}
+                  </button>
+                </div>
               </form>
             )}
           </div>

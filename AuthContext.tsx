@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 
-export type Role = "admin" | "faculty" | "viewer";
+export type Role = "admin" | "faculty";
 
 export interface AuthUser {
   email: string;
   role: Role;
   name: string;
+  token?: string;
 }
 
 export interface LoginLogEntry {
@@ -20,7 +21,7 @@ export interface LoginLogEntry {
 interface AuthContextType {
   user: AuthUser | null;
   loginLogs: LoginLogEntry[];
-  login: (email: string, role: Role) => void;
+  login: (email: string, role: Role, name?: string, token?: string) => void;
   logout: () => void;
   clearLogs: () => void;
 }
@@ -49,7 +50,7 @@ const INITIAL_LOGS: LoginLogEntry[] = [
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => {
     const saved = localStorage.getItem("icfai_user");
-    return saved ? JSON.parse(saved) : { email: "admin@icfai.edu", role: "admin", name: "Admin User" };
+    return saved ? JSON.parse(saved) : { email: "admin@icfai.edu", role: "admin", name: "Super Admin" };
   });
 
   const [loginLogs, setLoginLogs] = useState<LoginLogEntry[]>(() => {
@@ -62,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("icfai_user", JSON.stringify(user));
     } else {
       localStorage.removeItem("icfai_user");
+      localStorage.removeItem("icfai_jwt_token");
     }
   }, [user]);
 
@@ -69,13 +71,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("icfai_login_logs", JSON.stringify(loginLogs));
   }, [loginLogs]);
 
-  const login = (email: string, role: Role) => {
-    const roleTitle = role === "admin" ? "Admin User" : role === "faculty" ? "Faculty User" : "Viewer User";
+  const login = (email: string, role: Role, name?: string, token?: string) => {
+    const roleTitle = name || (role === "admin" ? "Super Admin" : "Faculty Member");
     const loggedUser: AuthUser = {
       email: email || `${role}@icfai.edu`,
       role,
       name: roleTitle,
+      token,
     };
+    if (token) {
+      localStorage.setItem("icfai_jwt_token", token);
+    }
     setUser(loggedUser);
 
     // Record login entry in audit log
