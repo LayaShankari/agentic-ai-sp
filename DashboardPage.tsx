@@ -506,7 +506,7 @@ if (branchResponse.ok) {
         </div>
       </div>
 
-      {/* 8. Agentic AI Recommendation Engine — Separate from KPIs */}
+      {/* 8. Agentic AI Decision Engine — Separate from KPIs */}
       <AgenticRecommendationsWidget />
 
       {/* Existing KPI Cards Section */}
@@ -650,7 +650,7 @@ function AgenticRecommendationsWidget() {
             </span>
           </div>
           <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">
-            Agentic AI Recommendation Engine
+            Agentic AI Decision Engine
           </h2>
         </div>
 
