@@ -32,10 +32,9 @@ import {
   BookOpen,
   X,
 } from "lucide-react";
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useAuth } from "./AuthContext";
 import ApplicationsByYearChart from "./ApplicationsByYearChart";
-import SeatsByBranchChart from "./SeatsByBranchChart";
 import AttendancePage from "./AttendancePage";
 import AcademicsPage from "./AcademicsPage";
 
@@ -96,7 +95,7 @@ const MODULES: ModuleConfig[] = [
 interface RecommendationItem {
   id: string;
   category: "Admissions" | "Attendance" | "Academics" | "NPTEL/Internship" | "Placement";
-  priority: "High" | "Medium" | "Low";
+  priority: "High" | "Medium" | "Low" | "Informational";
   title: string;
   condition: string;
   recommendation: string;
@@ -162,6 +161,85 @@ const AI_RECOMMENDATIONS: RecommendationItem[] = [
     actionText: "Expand Hiring",
   },
 ];
+
+const RECOMMENDATION_CATEGORY_STYLES: Record<RecommendationItem["category"], { rail: string; icon: string; label: string }> = {
+  Admissions: { rail: "border-l-blue-500", icon: "bg-blue-50 text-blue-700 border-blue-200", label: "bg-blue-50 text-blue-800 border-blue-100" },
+  Attendance: { rail: "border-l-teal-500", icon: "bg-teal-50 text-teal-700 border-teal-200", label: "bg-teal-50 text-teal-800 border-teal-100" },
+  Academics: { rail: "border-l-violet-500", icon: "bg-violet-50 text-violet-700 border-violet-200", label: "bg-violet-50 text-violet-800 border-violet-100" },
+  "NPTEL/Internship": { rail: "border-l-indigo-500", icon: "bg-indigo-50 text-indigo-700 border-indigo-200", label: "bg-indigo-50 text-indigo-800 border-indigo-100" },
+  Placement: { rail: "border-l-green-600", icon: "bg-green-50 text-green-700 border-green-200", label: "bg-green-50 text-green-800 border-green-100" },
+};
+
+const RECOMMENDATION_PRIORITY_STYLES: Record<RecommendationItem["priority"], {
+  card: string;
+  badge: string;
+  indicator: string;
+  condition: string;
+  conditionLabel: string;
+  recommendation: string;
+  recommendationLabel: string;
+  metric: string;
+  pending: string;
+  action: string;
+}> = {
+  High: {
+    card: "border-rose-200 bg-rose-50/40 hover:border-rose-300",
+    badge: "bg-rose-100 text-rose-800 border-rose-200",
+    indicator: "bg-rose-500",
+    condition: "bg-rose-50/80 border-rose-100",
+    conditionLabel: "text-rose-700",
+    recommendation: "bg-rose-50 border-rose-200",
+    recommendationLabel: "text-rose-800",
+    metric: "text-rose-700",
+    pending: "bg-rose-50 text-rose-800 border-rose-200",
+    action: "bg-rose-700 hover:bg-rose-800 focus-visible:ring-rose-300",
+  },
+  Medium: {
+    card: "border-amber-200 bg-amber-50/40 hover:border-amber-300",
+    badge: "bg-amber-100 text-amber-800 border-amber-200",
+    indicator: "bg-amber-500",
+    condition: "bg-amber-50/80 border-amber-100",
+    conditionLabel: "text-amber-700",
+    recommendation: "bg-orange-50 border-orange-200",
+    recommendationLabel: "text-orange-800",
+    metric: "text-amber-700",
+    pending: "bg-amber-50 text-amber-800 border-amber-200",
+    action: "bg-amber-700 hover:bg-amber-800 focus-visible:ring-amber-300",
+  },
+  Low: {
+    card: "border-green-200 bg-green-50/40 hover:border-green-300",
+    badge: "bg-green-100 text-green-800 border-green-200",
+    indicator: "bg-green-500",
+    condition: "bg-green-50/80 border-green-100",
+    conditionLabel: "text-green-700",
+    recommendation: "bg-emerald-50 border-emerald-200",
+    recommendationLabel: "text-emerald-800",
+    metric: "text-green-700",
+    pending: "bg-green-50 text-green-800 border-green-200",
+    action: "bg-green-700 hover:bg-green-800 focus-visible:ring-green-300",
+  },
+  Informational: {
+    card: "border-blue-200 bg-blue-50/40 hover:border-blue-300",
+    badge: "bg-blue-100 text-blue-800 border-blue-200",
+    indicator: "bg-blue-500",
+    condition: "bg-blue-50/80 border-blue-100",
+    conditionLabel: "text-blue-700",
+    recommendation: "bg-sky-50 border-sky-200",
+    recommendationLabel: "text-sky-800",
+    metric: "text-blue-700",
+    pending: "bg-blue-50 text-blue-800 border-blue-200",
+    action: "bg-blue-700 hover:bg-blue-800 focus-visible:ring-blue-300",
+  },
+};
+
+const RECOMMENDATION_FILTER_STYLES: Record<string, { selected: string; idle: string }> = {
+  All: { selected: "bg-slate-800 text-white border-slate-800", idle: "text-slate-600 border-transparent hover:bg-slate-100" },
+  Admissions: { selected: "bg-blue-100 text-blue-900 border-blue-200", idle: "text-blue-700 border-transparent hover:bg-blue-50" },
+  Attendance: { selected: "bg-teal-100 text-teal-900 border-teal-200", idle: "text-teal-700 border-transparent hover:bg-teal-50" },
+  Academics: { selected: "bg-violet-100 text-violet-900 border-violet-200", idle: "text-violet-700 border-transparent hover:bg-violet-50" },
+  "NPTEL/Internship": { selected: "bg-indigo-100 text-indigo-900 border-indigo-200", idle: "text-indigo-700 border-transparent hover:bg-indigo-50" },
+  Placement: { selected: "bg-green-100 text-green-900 border-green-200", idle: "text-green-700 border-transparent hover:bg-green-50" },
+};
 
 export default function DashboardPage() {
   const [activeModule, setActiveModule] = useState<ModuleId>("dashboard");
@@ -346,10 +424,8 @@ export default function DashboardPage() {
                       <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100 p-1">
                         {AI_RECOMMENDATIONS.map((rec) => {
                           const Icon = rec.icon;
-                          const priorityBadge =
-                            rec.priority === "High"
-                              ? "bg-rose-50 text-rose-700 border-rose-200"
-                              : "bg-amber-50 text-amber-700 border-amber-200";
+                          const priorityStyle = RECOMMENDATION_PRIORITY_STYLES[rec.priority];
+                          const categoryStyle = RECOMMENDATION_CATEGORY_STYLES[rec.category];
 
                           return (
                             <div
@@ -358,25 +434,34 @@ export default function DashboardPage() {
                                 setActiveModule("dashboard");
                                 setShowNotifications(false);
                               }}
-                              className="p-3 hover:bg-slate-50 transition rounded-xl cursor-pointer space-y-1.5"
+                              className={`p-3 border-l-4 ${categoryStyle.rail} ${priorityStyle.card} hover:shadow-sm transition rounded-xl cursor-pointer space-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400`}
+                              tabIndex={0}
+                              role="button"
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  setActiveModule("dashboard");
+                                  setShowNotifications(false);
+                                }
+                              }}
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-1.5 min-w-0">
-                                  <span className="w-6 h-6 rounded-lg bg-blue-50 text-brand-blue flex items-center justify-center shrink-0">
+                                  <span className={`w-6 h-6 rounded-lg border flex items-center justify-center shrink-0 ${categoryStyle.icon}`}>
                                     <Icon size={13} />
                                   </span>
                                   <span className="text-xs font-bold text-slate-800 truncate">
                                     {rec.title}
                                   </span>
                                 </div>
-                                <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full border shrink-0 ${priorityBadge}`}>
+                                <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full border shrink-0 ${priorityStyle.badge}`}>
                                   {rec.priority}
                                 </span>
                               </div>
                               <p className="text-[11px] text-slate-600 leading-snug pl-7">
                                 {rec.recommendation}
                               </p>
-                              <div className="text-[10px] text-brand-blue font-medium pl-7 flex items-center gap-1">
+                              <div className={`text-[10px] font-medium pl-7 flex items-center gap-1 ${priorityStyle.metric}`}>
                                 <TrendingUp size={11} />
                                 <span className="truncate">{rec.metricEvidence}</span>
                               </div>
@@ -424,7 +509,7 @@ export default function DashboardPage() {
           {/* Module Content View Renderer */}
           <main className="p-6 flex-1">
             {activeModule === "dashboard" && <MainDashboardView academicYear="All Academic Years" />}
-            {activeModule === "admissions" && <AdmissionsModuleView academicYear="All Academic Years" />}
+            {activeModule === "admissions" && <AdmissionsModuleView />}
             {activeModule === "academics" && <AcademicsPage />}
             {activeModule === "attendance" && <AttendancePage />}
             {activeModule === "settings" && <SettingsModuleView />}
@@ -444,9 +529,6 @@ export default function DashboardPage() {
 function MainDashboardView({ academicYear }: { academicYear: string }) {
   const [totalApplications, setTotalApplications] = useState<number | null>(null);
   const [totalSeatCapacity, setTotalSeatCapacity] = useState<number | null>(null);
-  const [seatsByBranch, setSeatsByBranch] = useState<
-  { branch: string; seats_filled: number }[]
->([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -467,14 +549,6 @@ function MainDashboardView({ academicYear }: { academicYear: string }) {
 if (seatResponse.ok) {
     const seatJson = await seatResponse.json();
     setTotalSeatCapacity(seatJson.value);
-}
-const branchResponse = await fetch(
-    '/api/kpis/admissions/seats-by-branch'
-);
-
-if (branchResponse.ok) {
-    const branchJson = await branchResponse.json();
-    setSeatsByBranch(branchJson);
 }
       } catch (e) {
         console.error("Error fetching total applications for dashboard summary:", e);
@@ -586,9 +660,6 @@ if (branchResponse.ok) {
         </div>
       </div>
 
-      {/* Main Dashboard Visualization: Applications by Year Line Chart */}
-      <ApplicationsByYearChart />
-      <SeatsByBranchChart />
     </div>
   );
 }
@@ -655,19 +726,17 @@ function AgenticRecommendationsWidget() {
         </div>
 
         {/* Category Filter Chips */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-200/80">
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-200/80" role="group" aria-label="Filter recommendations by category">
           {categories.map((cat) => {
             const isSelected = selectedCategory === cat;
+            const filterStyle = RECOMMENDATION_FILTER_STYLES[cat];
             return (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  isSelected
-                    ? "bg-[#0A1F44] text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
-                }`}
+                aria-pressed={isSelected}
+                className={`border text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-400 ${isSelected ? `${filterStyle.selected} shadow-xs` : `border-transparent ${filterStyle.idle}`}`}
               >
                 {cat}
               </button>
@@ -689,45 +758,37 @@ function AgenticRecommendationsWidget() {
         {filteredRecs.map((rec) => {
           const Icon = rec.icon;
           const isActioned = !!actionedIds[rec.id];
-
-          const priorityBadge =
-            rec.priority === "High"
-              ? "bg-rose-50 text-rose-700 border-rose-200"
-              : rec.priority === "Medium"
-              ? "bg-amber-50 text-amber-700 border-amber-200"
-              : "bg-emerald-50 text-emerald-700 border-emerald-200";
+          const priorityStyle = RECOMMENDATION_PRIORITY_STYLES[rec.priority];
+          const categoryStyle = RECOMMENDATION_CATEGORY_STYLES[rec.category];
 
           return (
             <div
               key={rec.id}
-              className={`rounded-2xl border transition-all duration-200 p-5 flex flex-col justify-between space-y-4 ${
-                isActioned
-                  ? "bg-emerald-50/40 border-emerald-200 shadow-2xs"
-                  : "bg-white border-slate-200/80 hover:border-blue-200 hover:shadow-md shadow-2xs"
-              }`}
+              className={`min-w-0 rounded-2xl border border-l-4 ${categoryStyle.rail} ${priorityStyle.card} shadow-2xs hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 p-5 flex flex-col justify-between gap-4`}
             >
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {/* Top Card Meta */}
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#2952E3] border border-blue-100 flex items-center justify-center">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className={`w-9 h-9 shrink-0 rounded-xl border flex items-center justify-center ${categoryStyle.icon}`}>
                       <Icon size={16} />
                     </span>
-                    <span className="text-xs font-bold text-slate-700">{rec.category}</span>
+                    <span className={`max-w-full truncate rounded-full border px-2 py-1 text-[10px] font-bold ${categoryStyle.label}`}>{rec.category}</span>
                   </div>
-                  <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border ${priorityBadge}`}>
+                  <span className={`inline-flex shrink-0 items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full border ${priorityStyle.badge}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${priorityStyle.indicator}`} />
                     {rec.priority} Priority
                   </span>
                 </div>
 
                 {/* Title */}
-                <h3 className="text-sm font-bold text-slate-900 leading-snug">
+                <h3 className="text-base font-bold text-slate-900 leading-snug">
                   {rec.title}
                 </h3>
 
                 {/* Condition */}
-                <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-2.5 text-xs">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                <div className={`border rounded-xl p-3 text-xs ${priorityStyle.condition}`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${priorityStyle.conditionLabel}`}>
                     Condition:
                   </span>
                   <p className="text-slate-700 leading-relaxed font-medium">
@@ -736,9 +797,9 @@ function AgenticRecommendationsWidget() {
                 </div>
 
                 {/* Recommendation */}
-                <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-2.5 text-xs">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#2952E3] flex items-center gap-1 mb-0.5">
-                    <Lightbulb size={12} className="text-amber-500 fill-amber-500" />
+                <div className={`border rounded-xl p-3 text-xs ${priorityStyle.recommendation}`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 mb-1 ${priorityStyle.recommendationLabel}`}>
+                    <Lightbulb size={12} className={priorityStyle.recommendationLabel} />
                     Recommendation:
                   </span>
                   <p className="text-slate-800 leading-relaxed font-semibold">
@@ -747,25 +808,22 @@ function AgenticRecommendationsWidget() {
                 </div>
 
                 {/* Metric Evidence Tag */}
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium pt-1">
-                  <TrendingUp size={13} className="text-slate-400 shrink-0" />
+                <div className={`flex items-center gap-1.5 text-[11px] font-semibold pt-1 ${priorityStyle.metric}`}>
+                  <TrendingUp size={13} className="shrink-0" />
                   <span className="truncate">{rec.metricEvidence}</span>
                 </div>
               </div>
 
               {/* Action Button */}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[11px] font-medium text-slate-400">
+              <div className="pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${isActioned ? "bg-emerald-50 text-emerald-800 border-emerald-200" : priorityStyle.pending}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${isActioned ? "bg-emerald-500" : priorityStyle.indicator}`} />
                   {isActioned ? "Status: Action Initiated" : "Status: Pending"}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleAction(rec)}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-                    isActioned
-                      ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                      : "bg-[#0A1F44] hover:bg-[#1A386D] text-white shadow-2xs"
-                  }`}
+                  className={`text-xs font-semibold px-3.5 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${isActioned ? "bg-emerald-700 hover:bg-emerald-800 text-white focus-visible:ring-emerald-300" : `${priorityStyle.action} text-white shadow-2xs`}`}
                 >
                   {isActioned ? (
                     <>
@@ -1047,429 +1105,156 @@ function SettingsModuleView() {
   );
 }
 
-interface TotalApplicationsData {
-  kpi: string;
-  value: number;
-  academic_year: string;
-  institution: string;
-  program: string;
-}
-
 interface AdmissionsRateData {
   kpi: string;
-  value: number;
+  value: number | null;
+  available?: boolean;
+  allocated_students?: number;
+  total_capacity?: number;
+  capacity_by_department_year?: { academic_year: string; department: string; capacity: number }[];
+  over_capacity?: boolean;
+  message?: string | null;
 }
+interface FirstChoiceDepartment { department: string; first_choice_allocations: number; }
+interface SecondChoiceDepartment { department: string; second_choice_allocations: number; }
 
-interface BranchDemandData {
-  branch: string;
-  first_choice_applications: number;
-  demand_percentage: number;
-}
-
-interface OverallAllocationData {
-  allocated: number;
-  total: number;
-  rate: number;
-}
-
-function AdmissionsModuleView({ academicYear }: { academicYear: string }) {
-  const [data, setData] = useState<TotalApplicationsData | null>(null);
-  const [firstChoiceRate, setFirstChoiceRate] = useState<AdmissionsRateData | null>(null);
-  const [secondChoiceRate, setSecondChoiceRate] = useState<AdmissionsRateData | null>(null);
-  const [seatUtilizationRate, setSeatUtilizationRate] = useState<AdmissionsRateData | null>(null);
-  const [branchDemand, setBranchDemand] = useState<BranchDemandData[]>([]);
-  const [overallAllocation, setOverallAllocation] = useState<OverallAllocationData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+function AdmissionsModuleView() {
+  const [academicYear, setAcademicYear] = useState("All");
+  const [department, setDepartment] = useState("All");
+  const [years, setYears] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [totalApplications, setTotalApplications] = useState(0);
+  const [seatUtilization, setSeatUtilization] = useState<AdmissionsRateData | null>(null);
+  const [secondChoiceByDepartment, setSecondChoiceByDepartment] = useState<SecondChoiceDepartment[]>([]);
+  const [firstChoiceByDepartment, setFirstChoiceByDepartment] = useState<FirstChoiceDepartment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchKpi = async () => {
+  const fetchAdmissions = async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
-    try {
-      const response = await fetch(
-        `/api/kpis/admissions/total-applications?academic_year=${encodeURIComponent(academicYear)}`
-      );
-      if (!response.ok) {
-        throw new Error(`Failed to fetch KPI: HTTP ${response.status}`);
-      }
-      const result = await response.json();
-      setData(result);
-    } catch (err: any) {
-      console.error("Error fetching Total Applications KPI:", err);
-      setError("Unable to connect to backend server or load database KPI.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchKpi();
-  }, [academicYear]);
-
-  const fetchOverallAllocation = async () => {
-    try {
-      const [applicationsResponse, branchSeatsResponse] = await Promise.all([
-        fetch("/api/kpis/admissions/total-applications"),
-        fetch("/api/kpis/admissions/seats-by-branch"),
-      ]);
-      if (!applicationsResponse.ok || !branchSeatsResponse.ok) {
-        throw new Error("Failed to fetch allocation totals.");
-      }
-      const [applications, branchSeats] = await Promise.all([
-        applicationsResponse.json(),
-        branchSeatsResponse.json(),
-      ]);
-      const allocated = branchSeats.reduce(
-        (sum: number, branch: { branch: string | null; seats_filled: number }) =>
-          branch.branch?.trim() ? sum + Number(branch.seats_filled || 0) : sum,
-        0,
-      );
-      const total = Number(applications.value || 0);
-      setOverallAllocation({
-        allocated,
-        total,
-        rate: total > 0 ? (allocated / total) * 100 : 0,
-      });
-    } catch (err) {
-      console.error("Error fetching overall allocation rate:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchOverallAllocation();
-  }, []);
-
-  const fetchAdmissionsMetrics = async () => {
+    setSeatUtilization(null);
+    setFirstChoiceByDepartment([]);
+    setSecondChoiceByDepartment([]);
     const year = encodeURIComponent(academicYear);
+    const selectedDepartment = encodeURIComponent(department);
     try {
-      const [firstChoiceResponse, secondChoiceResponse, utilizationResponse, demandResponse] = await Promise.all([
-        fetch(`/api/kpis/admissions/first-choice-allocation-rate?academic_year=${year}`),
-        fetch(`/api/kpis/admissions/second-choice-allocation-rate?academic_year=${year}`),
-        fetch(`/api/kpis/admissions/seat-utilization-rate?academic_year=${year}`),
-        fetch(`/api/kpis/admissions/branch-demand-index?academic_year=${year}`),
+      const fetchOptions = signal ? { signal } : undefined;
+      const [yearListResponse, totalResponse, utilizationResponse, capacityResponse, firstByDeptResponse, secondByDeptResponse] = await Promise.all([
+        fetch("/api/kpis/admissions/applications-by-year", fetchOptions),
+        fetch(`/api/kpis/admissions/total-applications?academic_year=${year}&department=${selectedDepartment}`, fetchOptions),
+        fetch(`/api/kpis/admissions/seat-utilization-rate?academic_year=${year}&department=${selectedDepartment}`, fetchOptions),
+        fetch(`/api/kpis/admissions/total-seat-capacity?academic_year=${year}`, fetchOptions),
+        fetch(`/api/kpis/admissions/first-choice-by-department?academic_year=${year}&department=${selectedDepartment}`, fetchOptions),
+        fetch(`/api/kpis/admissions/second-choice-by-department?academic_year=${year}&department=${selectedDepartment}`, fetchOptions),
       ]);
-      if (![firstChoiceResponse, secondChoiceResponse, utilizationResponse, demandResponse].every((response) => response.ok)) {
-        throw new Error("Failed to fetch Admissions metrics.");
+      if (![yearListResponse, totalResponse, utilizationResponse, capacityResponse, firstByDeptResponse, secondByDeptResponse].every((response) => response.ok)) {
+        throw new Error("One or more Admissions analytics requests failed.");
       }
-      const [firstChoice, secondChoice, utilization, demand] = await Promise.all([
-        firstChoiceResponse.json(),
-        secondChoiceResponse.json(),
-        utilizationResponse.json(),
-        demandResponse.json(),
+      const [byYear, total, utilization, capacityDirectory, firstByDept, secondByDept] = await Promise.all([
+        yearListResponse.json(), totalResponse.json(), utilizationResponse.json(), capacityResponse.json(), firstByDeptResponse.json(), secondByDeptResponse.json(),
       ]);
-      setFirstChoiceRate(firstChoice);
-      setSecondChoiceRate(secondChoice);
-      setSeatUtilizationRate(utilization);
-      setBranchDemand(demand);
+      setYears(byYear.map((row: { academic_year: string }) => String(row.academic_year)));
+      setDepartments((capacityDirectory.capacity_by_department || []).map((row: { department: string }) => row.department));
+      setTotalApplications(Number(total.value || 0));
+      setSeatUtilization(utilization);
+      setFirstChoiceByDepartment(firstByDept);
+      setSecondChoiceByDepartment(secondByDept);
     } catch (err) {
-      console.error("Error fetching Admissions metrics:", err);
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      console.error("Error loading Admissions analytics:", err);
+      setError("Unable to load admissions analytics. Check the backend connection and retry.");
+    } finally {
+      if (!signal?.aborted) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAdmissionsMetrics();
-  }, [academicYear]);
-
-  const formatPercentage = (value: number) => `${Number(value.toFixed(2))}%`;
-  const gaugeRate = overallAllocation ? Math.min(Math.max(overallAllocation.rate, 0), 100) : 0;
-  const remainingRate = 100 - gaugeRate;
-  const remainingApplicants = overallAllocation
-    ? Math.max(overallAllocation.total - overallAllocation.allocated, 0)
-    : 0;
+    const controller = new AbortController();
+    void fetchAdmissions(controller.signal);
+    return () => controller.abort();
+  }, [academicYear, department]);
 
   return (
     <div className="space-y-6">
-      {/* Overview Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-[#0A1F44] via-[#173B78] to-[#2952E3] rounded-3xl p-6 md:p-7 border border-blue-900/20 shadow-lg shadow-blue-950/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="absolute -right-8 -top-16 h-52 w-52 rounded-full bg-cyan-300/10 blur-2xl pointer-events-none" />
-        <div>
-          <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <span className="w-11 h-11 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shadow-inner"><Users className="text-cyan-200" size={24} /></span>
-            Admissions Analytics & Intake Engine
-          </h2>
-          <p className="text-sm text-blue-100/90 mt-2">
-            Real-time enrollment demand and student application metrics for ICFAI Tech School.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold px-3 py-2 rounded-xl bg-white/10 text-white border border-white/20 backdrop-blur-sm flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            PostgreSQL Live Sync
-          </span>
-          <button
-            onClick={() => {
-              fetchKpi();
-              fetchAdmissionsMetrics();
-              fetchOverallAllocation();
-            }}
-            className="p-2.5 text-white/80 hover:text-white rounded-xl border border-white/20 hover:bg-white/10 transition cursor-pointer"
-            title="Refresh KPI Data"
-          >
-            <RefreshCw size={16} className={loading ? "animate-spin text-[#2952E3]" : ""} />
-          </button>
-        </div>
-
-      </div>
-
-      {/* Row 1: total applications and its historical chart. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-        {/* TOTAL APPLICATIONS KPI CARD */}
-        <div className="relative overflow-hidden min-h-[230px] bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 rounded-3xl border border-blue-400/30 shadow-lg shadow-blue-900/15 hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200 p-6 md:p-7 flex flex-col">
-          <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10 blur-xl pointer-events-none" />
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-white shadow-inner">
-              <Users size={23} />
-            </div>
-            <span className="text-sm font-bold text-white">Total Applications</span>
-          </div>
-          <div className="flex-1 flex flex-col justify-center items-center text-center py-4">
-            {loading ? (
-              <div className="space-y-3 animate-pulse">
-                <div className="h-12 w-36 bg-slate-100 rounded-lg"></div>
-                <div className="h-4 w-48 bg-slate-100 rounded-md"></div>
-              </div>
-            ) : error ? (
-              <div className="text-xs text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-200 space-y-2">
-                <p className="font-semibold">{error}</p>
-                <button
-                  onClick={fetchKpi}
-                  className="text-[11px] font-bold text-rose-700 underline cursor-pointer"
-                >
-                  Try Again
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="text-4xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-sm">
-                  {data?.value != null ? data.value.toLocaleString() : "0"}
-                </div>
-                <p className="text-sm font-medium text-blue-100">Applications received for ICFAI Tech School</p>
-              </div>
-            )}
-          </div>
-          <div className="flex justify-center">
-            <span className="text-xs font-semibold text-white/80 bg-white/10 px-3 py-1.5 rounded-xl border border-white/15">
-              Academic Year: <span className="text-white">{academicYear}</span>
-            </span>
-          </div>
-        </div>
-
-        <ApplicationsByYearChart />
-      </div>
-
-      {/* Row 2: seat utilization and the allocation comparison. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-        {[
-          { label: "Seat Utilization Rate", metric: seatUtilizationRate, icon: Database },
-        ].map(({ label, metric, icon: Icon }) => (
-          <div key={label} className="relative overflow-hidden min-h-[230px] bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 rounded-3xl border border-emerald-400/30 shadow-lg shadow-teal-900/15 hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200 p-6 md:p-7 flex flex-col">
-            <div className="absolute -right-10 -top-12 w-40 h-40 rounded-full bg-white/10 blur-xl pointer-events-none" />
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-white shadow-inner">
-                <Icon size={23} />
-              </div>
-              <span className="text-sm font-bold text-white">{label}</span>
-            </div>
-            <div className="flex-1 flex items-center justify-center py-4">
-              <div className="text-4xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-sm">
-                {metric ? `${metric.value.toFixed(2)}%` : "—"}
-              </div>
-            </div>
-          </div>
-        ))}
-
-      {/* Allocation Outcome comparison based on the two existing allocation KPIs. */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-white via-violet-50/50 to-amber-50/50 rounded-3xl border border-violet-100 shadow-lg shadow-violet-900/5 p-6 md:p-7">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-fuchsia-400 to-amber-400" />
-        <div className="mb-4">
-          <h3 className="text-lg font-extrabold text-slate-900">Allocation Outcome</h3>
-          <p className="text-sm text-slate-500 mt-1">Relative comparison of first and second choice allocation rates</p>
-        </div>
-        {firstChoiceRate && secondChoiceRate && firstChoiceRate.value + secondChoiceRate.value > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-            <div className="relative h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: "First Choice Allocation", value: firstChoiceRate.value, color: "#7C3AED" },
-                      { name: "Second Choice Allocation", value: secondChoiceRate.value, color: "#F59E0B" },
-                    ]}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius="58%"
-                    outerRadius="82%"
-                    paddingAngle={3}
-                    stroke="#FFFFFF"
-                    strokeWidth={3}
-                  >
-                    <Cell fill="#7C3AED" />
-                    <Cell fill="#F59E0B" />
-                  </Pie>
-                  <Tooltip formatter={(value, name) => [`${Number(value ?? 0).toFixed(2)}%`, name]} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-xs font-bold uppercase tracking-wide text-violet-500">Allocation</span>
-                <span className="text-sm font-extrabold text-slate-800">Comparison</span>
-              </div>
-            </div>
-            <div className="space-y-4">
-              {[
-                { label: "First Choice Allocation", value: firstChoiceRate.value, color: "bg-violet-600" },
-                { label: "Second Choice Allocation", value: secondChoiceRate.value, color: "bg-amber-500" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between gap-4 rounded-2xl bg-white/90 border border-slate-100 shadow-sm px-4 py-4">
-                  <div className="flex items-center gap-3">
-                    <span className={`w-3 h-3 rounded-full shrink-0 ${item.color}`} />
-                    <span className="text-sm font-semibold text-slate-700">{item.label}</span>
-                  </div>
-                  <span className="text-lg font-extrabold text-slate-900">{item.value.toFixed(2)}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className="py-12 text-center text-sm text-slate-400">
-            {firstChoiceRate && secondChoiceRate ? "No allocation-rate values to compare." : "Loading allocation rates…"}
-          </p>
-        )}
-      </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-      {/* Overall allocation gauge reuses the existing all-years admissions endpoints. */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-white via-blue-50/70 to-cyan-50/80 rounded-3xl border border-blue-100 shadow-lg shadow-blue-900/5 p-6 md:p-8">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-400" />
-        <div className="mb-4">
-          <h3 className="text-xl font-extrabold text-slate-900">Overall Allocation Rate</h3>
-          <p className="text-sm text-slate-500 mt-1">Allocated students as a share of all applications</p>
-        </div>
-        {overallAllocation ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-            <div className="relative h-72 sm:h-80 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <defs>
-                    <linearGradient id="overallAllocationGradient" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#2563EB" />
-                      <stop offset="100%" stopColor="#10B981" />
-                    </linearGradient>
-                  </defs>
-                  <Pie
-                    data={[
-                      { name: "Allocated", value: gaugeRate },
-                      { name: "Remaining", value: remainingRate },
-                    ]}
-                    dataKey="value"
-                    startAngle={180}
-                    endAngle={0}
-                    cx="50%"
-                    cy="82%"
-                    innerRadius="68%"
-                    outerRadius="92%"
-                    paddingAngle={1}
-                    stroke="none"
-                  >
-                    <Cell fill="url(#overallAllocationGradient)" />
-                    <Cell fill="#E2E8F0" />
-                  </Pie>
-                  <Tooltip formatter={(value, name) => [`${Number(value ?? 0).toFixed(2)}%`, name]} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute left-0 right-0 top-[66%] -translate-y-1/2 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
-                  {formatPercentage(overallAllocation.rate)}
-                </span>
-                <span className="text-sm font-semibold text-slate-500 mt-1">allocated</span>
-              </div>
-              <div className="absolute bottom-2 left-2 right-2 flex justify-between px-4 text-xs font-semibold text-slate-400">
-                <span>0%</span>
-                <span>100%</span>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-5">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-r from-blue-600 to-emerald-500" />
-                    <span className="font-semibold text-slate-700">Allocated</span>
-                  </div>
-                  <span className="text-lg font-extrabold text-slate-900">{formatPercentage(gaugeRate)}</span>
-                </div>
-                <p className="text-sm text-slate-500 mt-2 pl-6">
-                  {overallAllocation.allocated.toLocaleString()} of {overallAllocation.total.toLocaleString()} applicants
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="w-3.5 h-3.5 rounded-full bg-slate-300" />
-                    <span className="font-semibold text-slate-700">Remaining</span>
-                  </div>
-                  <span className="text-lg font-extrabold text-slate-900">{formatPercentage(remainingRate)}</span>
-                </div>
-                <p className="text-sm text-slate-500 mt-2 pl-6">
-                  {remainingApplicants.toLocaleString()} applicants without an allocated branch
-                </p>
-              </div>
-              <p className="text-xs text-slate-400">All academic years</p>
-            </div>
-          </div>
-        ) : (
-          <div className="h-64 flex items-center justify-center text-sm text-slate-400">
-            Loading allocation data…
-          </div>
-        )}
-      </div>
-
-      {/* Branch demand detail remains separate from the main KPI cards. */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-white via-rose-50/40 to-orange-50/50 rounded-3xl border border-orange-100 shadow-lg shadow-orange-900/5 p-7 md:p-8">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-amber-300" />
-        <div className="flex items-start justify-between gap-4 mb-8">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0A1F44] via-[#173B78] to-[#2952E3] p-6 md:p-7 text-white shadow-lg">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-xl md:text-2xl font-bold text-slate-900 flex items-center gap-3">
-              <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 border border-white/50 flex items-center justify-center shadow-md shadow-orange-500/20">
-                <Target size={22} className="text-white" />
-              </span>
-              Branch Demand Index
-            </h3>
-            <p className="text-sm text-slate-500 mt-2">First-choice applications as a share of all first choices</p>
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white/15"><Users size={23} /></span>
+              <div>
+                <h1 className="text-xl font-extrabold tracking-tight md:text-2xl">Admissions Analytics</h1>
+                <p className="mt-1 text-sm text-blue-100/90">Applications, seat utilization, and allocation outcomes</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="admissions-year" className="text-xs font-semibold text-blue-100">Academic year</label>
+            <select id="admissions-year" value={academicYear} onChange={(event) => setAcademicYear(event.target.value)} className="rounded-xl border border-white/20 bg-white px-3 py-2 text-sm font-semibold text-slate-800">
+              <option value="All">All years</option>
+              {years.map((year) => <option key={year} value={year}>{year}</option>)}
+            </select>
+            <label htmlFor="admissions-department" className="text-xs font-semibold text-blue-100">Department</label>
+            <select id="admissions-department" value={department} onChange={(event) => setDepartment(event.target.value)} className="rounded-xl border border-white/20 bg-white px-3 py-2 text-sm font-semibold text-slate-800">
+              <option value="All">All departments</option>
+              {departments.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <button onClick={() => void fetchAdmissions()} className="rounded-xl border border-white/20 p-2.5 text-white hover:bg-white/10" aria-label="Refresh admissions data"><RefreshCw size={16} className={loading ? "animate-spin" : ""} /></button>
           </div>
         </div>
-        {branchDemand.length ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6">
-            {branchDemand.map((branch, index) => {
-              const barColors = ["bg-violet-600", "bg-cyan-600", "bg-amber-500", "bg-rose-500", "bg-emerald-600", "bg-blue-600"];
-              return (
-                <div key={branch.branch} className="rounded-2xl border border-white bg-white/85 shadow-sm hover:shadow-md transition-shadow p-5 md:p-6">
-                  <div className="flex items-center justify-between gap-4 mb-4">
-                    <div>
-                      <h4 className="text-lg md:text-xl font-bold text-slate-800">{branch.branch}</h4>
-                      <p className="text-sm text-slate-500 mt-1">{branch.first_choice_applications.toLocaleString()} first-choice applications</p>
-                    </div>
-                    <span className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">
-                      {branch.demand_percentage.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-100 border border-slate-200/80 rounded-full h-4 overflow-hidden shadow-inner">
-                    <div
-                      className={`h-full rounded-full ${barColors[index % barColors.length]} transition-all duration-500`}
-                      style={{ width: `${Math.min(branch.demand_percentage, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-400">No first-choice applications available.</p>
-        )}
-      </div>
+      </section>
 
-      </div>
+      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{error}</div>}
+
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2" aria-label="Applications and seat utilization">
+        <article className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-600 to-violet-700 p-5 text-white shadow-md">
+          <div className="flex items-center justify-between"><h2 className="text-sm font-bold">Total Applications</h2><Users size={20} /></div>
+          <p className="mt-3 text-3xl font-extrabold">{loading ? "?" : totalApplications.toLocaleString()}</p>
+          <p className="mt-1 text-xs text-blue-100">{department === "All" ? "Unique applicants across departments" : `Unique applicants with a ${department} preference or allocation`} in {academicYear === "All" ? "all academic years" : academicYear}</p>
+        </article>
+        <article className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-600 to-cyan-700 p-5 text-white shadow-md">
+          <div className="flex items-center justify-between"><h2 className="text-sm font-bold">Seat Utilization</h2><Database size={20} /></div>
+          <p className="mt-3 text-3xl font-extrabold">
+            {loading ? "?" : seatUtilization?.available && seatUtilization.value != null ? `${Number(seatUtilization.value).toFixed(2)}%` : "Unavailable"}
+          </p>
+          {seatUtilization?.available ? (
+            <p className="mt-1 text-xs text-emerald-100" title="Unique students with a final allocated department divided by department seat capacity, multiplied by 100. Capacity is counted once per department and academic year.">
+              {seatUtilization.allocated_students?.toLocaleString()} allocated / {seatUtilization.total_capacity?.toLocaleString()} seats
+            </p>
+          ) : !loading ? (
+            <p className="mt-1 text-xs text-emerald-100">{seatUtilization?.message || "Allocated-student or seat-capacity data is unavailable."}</p>
+          ) : null}
+          {seatUtilization?.over_capacity && <p className="mt-2 rounded-lg bg-amber-100/20 px-2 py-1 text-xs font-semibold text-amber-100">Allocated students exceed available capacity.</p>}
+          {seatUtilization?.available && seatUtilization.capacity_by_department_year?.length ? <p className="mt-2 text-xs leading-relaxed text-emerald-100" title="Department seat capacity for each selected academic year.">Capacity: {seatUtilization.capacity_by_department_year.map((item) => `${item.department} ${item.academic_year}: ${item.capacity}`).join(" | ")}</p> : null}
+          <p className="mt-2 text-[11px] text-emerald-100/80" title="Seat utilization is unique allocated students divided by total available department capacity, multiplied by 100.">Formula: allocated students / capacity, multiplied by 100</p>
+        </article>
+      </section>
+
+      <ApplicationsByYearChart academicYear={academicYear} />
+
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <article className="rounded-3xl border border-violet-100 bg-white p-5 shadow-lg">
+          <div className="mb-4"><h2 className="text-lg font-extrabold text-slate-900">First Choice Allocations by Department</h2><p className="text-sm text-slate-500">Students allocated to the department they selected first</p></div>
+          <div className="h-72">
+            {firstChoiceByDepartment.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={firstChoiceByDepartment} margin={{ top: 10, right: 12, left: 0, bottom: 12 }}>
+              <CartesianGrid stroke="#EDE9FE" strokeDasharray="4 4" vertical={false} /><XAxis dataKey="department" tickLine={false} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #E2E8F0", boxShadow: "0 10px 25px -5px rgba(15,23,42,0.15)" }} formatter={(value) => [`${Number(value).toLocaleString()} students`, "First choice allocations"]} labelFormatter={(label) => `Department: ${label}`} />
+              <Bar dataKey="first_choice_allocations" name="First choice allocations" fill="#6D5CE8" radius={[7,7,0,0]} />
+            </BarChart></ResponsiveContainer> : <p className="flex h-full items-center justify-center text-sm text-slate-400">No first-choice allocation data for this filter.</p>}
+          </div>
+        </article>
+        <article className="rounded-3xl border border-violet-100 bg-white p-5 shadow-lg">
+          <div className="mb-4"><h2 className="text-lg font-extrabold text-slate-900">Second Choice Allocations by Department</h2><p className="text-sm text-slate-500">Students allocated to the department they selected second</p></div>
+          <div className="h-72">
+            {secondChoiceByDepartment.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={secondChoiceByDepartment} margin={{ top: 10, right: 12, left: 0, bottom: 12 }}>
+              <CartesianGrid stroke="#EDE9FE" strokeDasharray="4 4" vertical={false} /><XAxis dataKey="department" tickLine={false} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #E2E8F0", boxShadow: "0 10px 25px -5px rgba(15,23,42,0.15)" }} formatter={(value) => [`${Number(value).toLocaleString()} students`, "Second choice allocations"]} labelFormatter={(label) => `Department: ${label}`} />
+              <Bar dataKey="second_choice_allocations" name="Second choice allocations" fill="#F59E0B" radius={[7,7,0,0]} />
+            </BarChart></ResponsiveContainer> : <p className="flex h-full items-center justify-center text-sm text-slate-400">No second-choice allocation data for this filter.</p>}
+          </div>
+        </article>
+      </section>
 
     </div>
   );
 }
-

@@ -15,7 +15,7 @@ export interface ApplicationsByYearData {
   total_applications: number;
 }
 
-export default function ApplicationsByYearChart() {
+export default function ApplicationsByYearChart({ academicYear = "All" }: { academicYear?: string }) {
   const [data, setData] = useState<ApplicationsByYearData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +41,10 @@ export default function ApplicationsByYearChart() {
   useEffect(() => {
     fetchChartData();
   }, []);
+
+  const visibleData = academicYear === "All"
+    ? data
+    : data.filter((row) => row.academic_year === academicYear);
 
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-white via-sky-50/40 to-indigo-50/50 rounded-3xl p-6 md:p-7 border border-blue-100 shadow-lg shadow-blue-900/5 space-y-4">
@@ -82,7 +86,7 @@ export default function ApplicationsByYearChart() {
             Try Again
           </button>
         </div>
-      ) : !data || data.length === 0 ? (
+      ) : !visibleData || visibleData.length === 0 ? (
         <div className="h-72 flex flex-col items-center justify-center text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200 p-6 space-y-2">
           <p className="text-xs font-semibold text-slate-600">No application data available</p>
           <p className="text-[11px] text-slate-400">Database contains no admissions records for 2023–2025.</p>
@@ -91,7 +95,7 @@ export default function ApplicationsByYearChart() {
         <div className="h-72 w-full pt-2">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
-              data={data}
+              data={visibleData}
               margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="4 5" stroke="#DBEAFE" vertical={false} />

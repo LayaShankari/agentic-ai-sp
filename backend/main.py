@@ -17,6 +17,8 @@ from backend.services.kpi_service import (
     calculate_second_choice_allocation_rate,
     calculate_seat_utilization_rate,
     calculate_branch_demand_index,
+    calculate_first_choice_allocations_by_department,
+    calculate_second_choice_allocations_by_department,
 )
 
 app = FastAPI(
@@ -52,13 +54,14 @@ def health_check():
 @app.get("/api/kpis/admissions/total-applications")
 def get_total_applications_kpi(
     academic_year: Optional[str] = Query(None, description="Academic year filter, e.g. '2025' or '2024'"),
+    department: Optional[str] = Query(None, description="Optional department preference filter"),
     db: Session = Depends(get_db)
 ):
     """
     Returns Total Applications KPI for ICFAI Tech School B.Tech Admissions.
     Calculated as COUNT(DISTINCT Student_ID) from PostgreSQL database.
     """
-    return calculate_total_applications(db=db, academic_year=academic_year)
+    return calculate_total_applications(db=db, academic_year=academic_year, department=department)
 
 @app.get("/api/kpis/admissions/applications-by-year")
 def get_applications_by_year_kpi(db: Session = Depends(get_db)):
@@ -75,14 +78,34 @@ def get_seats_by_branch_kpi(db: Session = Depends(get_db)):
     return calculate_seats_by_branch(db=db)
 
 
+@app.get("/api/kpis/admissions/first-choice-by-department")
+def get_first_choice_by_department(
+    academic_year: Optional[str] = Query(None),
+    department: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    return calculate_first_choice_allocations_by_department(db=db, academic_year=academic_year, department=department)
+
+
+@app.get("/api/kpis/admissions/second-choice-by-department")
+def get_second_choice_by_department(
+    academic_year: Optional[str] = Query(None),
+    department: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    return calculate_second_choice_allocations_by_department(db=db, academic_year=academic_year, department=department)
+
+
 @app.get("/api/kpis/admissions/total-seat-capacity")
 def get_total_seat_capacity_kpi(
+    academic_year: Optional[str] = Query(None),
+    department: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     """
     Returns Total Seat Capacity KPI for ICFAI Tech School B.Tech Admissions.
     """
-    return calculate_total_seat_capacity(db=db)
+    return calculate_total_seat_capacity(db=db, academic_year=academic_year, department=department)
 
 
 @app.get("/api/kpis/admissions/first-choice-allocation-rate")
@@ -104,9 +127,10 @@ def get_second_choice_allocation_rate(
 @app.get("/api/kpis/admissions/seat-utilization-rate")
 def get_seat_utilization_rate(
     academic_year: Optional[str] = Query(None),
+    department: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
-    return calculate_seat_utilization_rate(db=db, academic_year=academic_year)
+    return calculate_seat_utilization_rate(db=db, academic_year=academic_year, department=department)
 
 
 @app.get("/api/kpis/admissions/branch-demand-index")
