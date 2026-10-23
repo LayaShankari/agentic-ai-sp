@@ -19,11 +19,6 @@ import {
 } from "lucide-react";
 import { useAuth, type Role } from "./AuthContext";
 
-const ROLE_TABS: { id: Role; label: string; icon: typeof ShieldCheck }[] = [
-  { id: "admin", label: "Admin", icon: ShieldCheck },
-  { id: "faculty", label: "Faculty", icon: User },
-];
-
 const APPROVED_DOMAINS = ["icfai.edu", "icfai.ac.in", "ifheindia.org", "edu.in", "ac.in"];
 
 function isCollegeEmail(email: string): boolean {
@@ -35,7 +30,6 @@ function isCollegeEmail(email: string): boolean {
 }
 
 export default function LoginPage() {
-  const [activeRole, setActiveRole] = useState<Role>("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -130,7 +124,6 @@ export default function LoginPage() {
         body: JSON.stringify({
           email: trimmedEmail,
           password: password,
-          role: activeRole,
           captcha_id: captchaId,
           captcha_answer: captchaAnswer.trim(),
         }),
@@ -250,10 +243,9 @@ export default function LoginPage() {
     }
   };
 
-  const setDemoCredentials = (role: Role) => {
-    setActiveRole(role);
-    setEmail(`${role}@icfai.edu`);
-    setPassword(role === "admin" ? "admin123" : "faculty123");
+  const setDemoCredentials = (userEmail: string, userPass: string) => {
+    setEmail(userEmail);
+    setPassword(userPass);
     setError("");
   };
 
@@ -334,33 +326,6 @@ export default function LoginPage() {
                 >
                   Need help? <HelpCircle size={14} className="text-slate-400" />
                 </button>
-              </div>
-
-              {/* Role tabs: Admin & Faculty only */}
-              <div className="grid grid-cols-2 gap-1.5 bg-slate-100/90 rounded-xl p-1 mt-6 border border-slate-200/60">
-                {ROLE_TABS.map(({ id, label, icon: Icon }) => {
-                  const isActive = activeRole === id;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => {
-                        setActiveRole(id);
-                        setError("");
-                      }}
-                      className={`relative flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-lg transition-all ${isActive
-                          ? "bg-white text-brand-blue shadow-sm"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-white/40"
-                        }`}
-                    >
-                      <Icon size={16} className={isActive ? "text-brand-blue" : "text-slate-400"} />
-                      {label}
-                      {isActive && (
-                        <div className="absolute bottom-0 left-3 right-3 h-[2px] bg-brand-blue rounded-full" />
-                      )}
-                    </button>
-                  );
-                })}
               </div>
 
               {/* Form */}
@@ -513,7 +478,29 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setDemoCredentials("admin");
+                  setDemoCredentials("person1@icfai.edu", "person1icfai");
+                  setShowHelpModal(false);
+                }}
+                className="w-full flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer"
+              >
+                <span>Person 1</span>
+                <span className="text-brand-blue font-mono">person1@icfai.edu</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDemoCredentials("person2@icfai.edu", "person2icfai");
+                  setShowHelpModal(false);
+                }}
+                className="w-full flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer"
+              >
+                <span>Person 2</span>
+                <span className="text-brand-blue font-mono">person2@icfai.edu</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDemoCredentials("admin@icfai.edu", "admin123");
                   setShowHelpModal(false);
                 }}
                 className="w-full flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer"
@@ -524,7 +511,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setDemoCredentials("faculty");
+                  setDemoCredentials("faculty@icfai.edu", "faculty123");
                   setShowHelpModal(false);
                 }}
                 className="w-full flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer"

@@ -241,6 +241,19 @@ const RECOMMENDATION_FILTER_STYLES: Record<string, { selected: string; idle: str
   Placement: { selected: "bg-green-100 text-green-900 border-green-200", idle: "text-green-700 border-transparent hover:bg-green-50" },
 };
 
+function isPersonUser(email?: string, name?: string): boolean {
+  const e = (email || "").toLowerCase();
+  const n = (name || "").toLowerCase();
+  return (
+    e.startsWith("person") ||
+    e.includes("person1") ||
+    e.includes("person2") ||
+    n.startsWith("person") ||
+    n.includes("person 1") ||
+    n.includes("person 2")
+  );
+}
+
 export default function DashboardPage() {
   const [activeModule, setActiveModule] = useState<ModuleId>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -316,13 +329,15 @@ export default function DashboardPage() {
                 {sidebarOpen && (
                   <div className="truncate">
                     <div className="text-sm font-bold text-white truncate">
-                      {user?.name || "Admin User"}
+                      {user?.name || "User"}
                     </div>
-                    <div className="text-[11px] text-slate-400 font-medium capitalize">
-                      {user?.role === "admin"
-                        ? "Super Admin"
-                        : "Faculty Member"}
-                    </div>
+                    {!isPersonUser(user?.email, user?.name) && (
+                      <div className="text-[11px] text-slate-400 font-medium capitalize">
+                        {user?.role === "admin"
+                          ? "Super Admin"
+                          : "Faculty Member"}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -496,11 +511,13 @@ export default function DashboardPage() {
                 </div>
                 <div className="hidden lg:block text-left">
                   <div className="text-xs font-bold text-slate-800 leading-tight">
-                    {user?.name || "Admin User"}
+                    {user?.name || "User"}
                   </div>
-                  <div className="text-[10px] text-slate-500 font-medium">
-                    {user?.role === "admin" ? "Super Admin" : "Faculty Member"}
-                  </div>
+                  {!isPersonUser(user?.email, user?.name) && (
+                    <div className="text-[10px] text-slate-500 font-medium">
+                      {user?.role === "admin" ? "Super Admin" : "Faculty Member"}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -526,39 +543,7 @@ export default function DashboardPage() {
   );
 }
 
-function MainDashboardView({ academicYear }: { academicYear: string }) {
-  const [totalApplications, setTotalApplications] = useState<number | null>(null);
-  const [totalSeatCapacity, setTotalSeatCapacity] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    const fetchSummary = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          `/api/kpis/admissions/total-applications?academic_year=${encodeURIComponent(academicYear)}`
-        );
-        if (response.ok) {
-          const json = await response.json();
-          setTotalApplications(json.value);
-        }
-        const seatResponse = await fetch(
-    '/api/kpis/admissions/total-seat-capacity'
-);
-
-if (seatResponse.ok) {
-    const seatJson = await seatResponse.json();
-    setTotalSeatCapacity(seatJson.value);
-}
-      } catch (e) {
-        console.error("Error fetching total applications for dashboard summary:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSummary();
-  }, [academicYear]);
-
+function MainDashboardView({ academicYear = "All Academic Years" }: { academicYear?: string }) {
   return (
     <div className="space-y-6">
       {/* Welcome & Overview Banner */}
@@ -582,84 +567,6 @@ if (seatResponse.ok) {
 
       {/* 8. Agentic AI Decision Engine — Separate from KPIs */}
       <AgenticRecommendationsWidget />
-
-      {/* Existing KPI Cards Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Applications KPI Card */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Total Applications
-            </span>
-            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2952E3]">
-              <Users size={20} />
-            </div>
-          </div>
-          {loading ? (
-            <div className="h-8 w-24 bg-slate-100 animate-pulse rounded-lg"></div>
-          ) : (
-            <div className="text-2xl font-extrabold text-slate-900">
-              {totalApplications != null ? totalApplications.toLocaleString() : "0"}
-            </div>
-          )}
-          <p className="text-xs text-slate-500 font-medium">
-            Unique applicants ({academicYear})
-          </p>
-        </div>
-
-       {/* Total Seat Capacity Card */}
-<div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2">
-  <div className="flex items-center justify-between">
-    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-      Total Seat Capacity
-    </span>
-    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-      <Database size={20} />
-    </div>
-  </div>
-
-  <div className="text-2xl font-extrabold text-slate-900">
-    {totalSeatCapacity != null ? totalSeatCapacity.toLocaleString() : "0"}
-  </div>
-
-  <p className="text-xs text-slate-500 font-medium">
-    Total available seats
-  </p>
-</div>
-       
-        {/* Active Program Card */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Active Program
-            </span>
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-              <GraduationCap size={20} />
-            </div>
-          </div>
-          <div className="text-2xl font-extrabold text-slate-900">B.Tech</div>
-          <p className="text-xs text-slate-500 font-medium">
-            ICFAI Tech School
-          </p>
-        </div>
-
-        {/* Dataset Academic Years Card */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Academic Years Tracked
-            </span>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-              <CheckCircle2 size={20} />
-            </div>
-          </div>
-          <div className="text-2xl font-extrabold text-slate-900">2023 – 2025</div>
-          <p className="text-xs text-slate-500 font-medium">
-            Verified PostgreSQL dataset
-          </p>
-        </div>
-      </div>
-
     </div>
   );
 }
@@ -913,7 +820,10 @@ function SettingsModuleView() {
           <div>
             <h2 className="text-lg font-bold text-slate-900">Security & Password Management</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Update password for <span className="font-semibold text-slate-700">{user?.email}</span> ({user?.role === "admin" ? "Super Admin" : "Faculty Member"}).
+              Update password for <span className="font-semibold text-slate-700">{user?.email}</span>
+              {!isPersonUser(user?.email, user?.name) && (
+                <> ({user?.role === "admin" ? "Super Admin" : "Faculty Member"})</>
+              )}.
             </p>
           </div>
         </div>
@@ -1048,9 +958,15 @@ function SettingsModuleView() {
                   <tr key={log.id} className="hover:bg-slate-50/80 transition">
                     <td className="p-3 font-semibold text-slate-900">{log.email}</td>
                     <td className="p-3">
-                      <span className="capitalize font-semibold text-brand-blue bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                        {log.role}
-                      </span>
+                      {isPersonUser(log.email) ? (
+                        <span className="font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
+                          —
+                        </span>
+                      ) : (
+                        <span className="capitalize font-semibold text-brand-blue bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                          {log.role}
+                        </span>
+                      )}
                     </td>
                     <td className="p-3 text-slate-500 flex items-center gap-1.5">
                       <Clock size={13} className="text-slate-400" />

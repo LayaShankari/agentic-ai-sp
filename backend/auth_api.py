@@ -357,6 +357,18 @@ def seed_users():
     try:
         initial_users = [
             {
+                "email": "person1@icfai.edu",
+                "name": "Person 1",
+                "role": "admin",
+                "password": "person1icfai",
+            },
+            {
+                "email": "person2@icfai.edu",
+                "name": "Person 2",
+                "role": "faculty",
+                "password": "person2icfai",
+            },
+            {
                 "email": "admin@icfai.edu",
                 "name": "Super Admin",
                 "role": "admin",
