@@ -24,9 +24,7 @@ import {
   AlertCircle,
   Sparkles,
   Bot,
-  TrendingUp,
   AlertTriangle,
-  Lightbulb,
   Briefcase,
   ArrowRight,
   BookOpen,
@@ -98,8 +96,6 @@ interface RecommendationItem {
   priority: "High" | "Medium" | "Low" | "Informational";
   title: string;
   condition: string;
-  recommendation: string;
-  metricEvidence: string;
   icon: typeof Users;
   actionText: string;
 }
@@ -108,11 +104,9 @@ const AI_RECOMMENDATIONS: RecommendationItem[] = [
   {
     id: "rec-1",
     category: "Admissions",
-    priority: "High",
+    priority: "Medium",
     title: "Increase CSE Seat Intake",
     condition: "CSE first-choice demand (31 applicants) exceeds available seats (30 seats).",
-    recommendation: "Increase CSE intake capacity for the next academic year.",
-    metricEvidence: "CSE: 31 First Choice Demand vs 30 Seats (100% Full)",
     icon: Users,
     actionText: "Review Intake",
   },
@@ -122,8 +116,6 @@ const AI_RECOMMENDATIONS: RecommendationItem[] = [
     priority: "High",
     title: "Attendance Intervention Alert",
     condition: "Students falling below 65% attendance require immediate intervention.",
-    recommendation: "Send attendance alerts and schedule parent-faculty meetings.",
-    metricEvidence: "Attendance Alert: < 65% Minimum Attendance Threshold",
     icon: CalendarCheck,
     actionText: "Send Alerts",
   },
@@ -133,8 +125,6 @@ const AI_RECOMMENDATIONS: RecommendationItem[] = [
     priority: "Medium",
     title: "Schedule Remedial Classes",
     condition: "Students scoring below 40 marks are at academic risk in core subjects.",
-    recommendation: "Conduct remedial classes and additional faculty tutoring.",
-    metricEvidence: "Academic Risk: Scoring Below 40 Marks",
     icon: GraduationCap,
     actionText: "Schedule Remedials",
   },
@@ -144,8 +134,6 @@ const AI_RECOMMENDATIONS: RecommendationItem[] = [
     priority: "Medium",
     title: "Boost NPTEL & Internship Participation",
     condition: "Student participation in certified NPTEL courses needs improvement.",
-    recommendation: "Run department awareness workshops and faculty mentoring.",
-    metricEvidence: "Participation Tracking: Certified NPTEL & Internships",
     icon: BookOpen,
     actionText: "Run Workshops",
   },
@@ -155,8 +143,6 @@ const AI_RECOMMENDATIONS: RecommendationItem[] = [
     priority: "Medium",
     title: "Strengthen Placement Conversion",
     condition: "Internship-to-placement transition rate needs targeted support.",
-    recommendation: "Provide technical interview bootcamps and expand hiring partnerships.",
-    metricEvidence: "Conversion Track: Internship to Full-Time Hiring",
     icon: Briefcase,
     actionText: "Expand Hiring",
   },
@@ -175,10 +161,6 @@ const RECOMMENDATION_PRIORITY_STYLES: Record<RecommendationItem["priority"], {
   badge: string;
   indicator: string;
   condition: string;
-  conditionLabel: string;
-  recommendation: string;
-  recommendationLabel: string;
-  metric: string;
   pending: string;
   action: string;
 }> = {
@@ -187,10 +169,6 @@ const RECOMMENDATION_PRIORITY_STYLES: Record<RecommendationItem["priority"], {
     badge: "bg-rose-100 text-rose-800 border-rose-200",
     indicator: "bg-rose-500",
     condition: "bg-rose-50/80 border-rose-100",
-    conditionLabel: "text-rose-700",
-    recommendation: "bg-rose-50 border-rose-200",
-    recommendationLabel: "text-rose-800",
-    metric: "text-rose-700",
     pending: "bg-rose-50 text-rose-800 border-rose-200",
     action: "bg-rose-700 hover:bg-rose-800 focus-visible:ring-rose-300",
   },
@@ -199,10 +177,6 @@ const RECOMMENDATION_PRIORITY_STYLES: Record<RecommendationItem["priority"], {
     badge: "bg-amber-100 text-amber-800 border-amber-200",
     indicator: "bg-amber-500",
     condition: "bg-amber-50/80 border-amber-100",
-    conditionLabel: "text-amber-700",
-    recommendation: "bg-orange-50 border-orange-200",
-    recommendationLabel: "text-orange-800",
-    metric: "text-amber-700",
     pending: "bg-amber-50 text-amber-800 border-amber-200",
     action: "bg-amber-700 hover:bg-amber-800 focus-visible:ring-amber-300",
   },
@@ -211,10 +185,6 @@ const RECOMMENDATION_PRIORITY_STYLES: Record<RecommendationItem["priority"], {
     badge: "bg-green-100 text-green-800 border-green-200",
     indicator: "bg-green-500",
     condition: "bg-green-50/80 border-green-100",
-    conditionLabel: "text-green-700",
-    recommendation: "bg-emerald-50 border-emerald-200",
-    recommendationLabel: "text-emerald-800",
-    metric: "text-green-700",
     pending: "bg-green-50 text-green-800 border-green-200",
     action: "bg-green-700 hover:bg-green-800 focus-visible:ring-green-300",
   },
@@ -223,10 +193,6 @@ const RECOMMENDATION_PRIORITY_STYLES: Record<RecommendationItem["priority"], {
     badge: "bg-blue-100 text-blue-800 border-blue-200",
     indicator: "bg-blue-500",
     condition: "bg-blue-50/80 border-blue-100",
-    conditionLabel: "text-blue-700",
-    recommendation: "bg-sky-50 border-sky-200",
-    recommendationLabel: "text-sky-800",
-    metric: "text-blue-700",
     pending: "bg-blue-50 text-blue-800 border-blue-200",
     action: "bg-blue-700 hover:bg-blue-800 focus-visible:ring-blue-300",
   },
@@ -272,12 +238,11 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#F4F6FA] flex flex-col font-sans">
       <div className="flex flex-1 overflow-hidden">
-        
+
         {/* Left Sidebar */}
         <aside
-          className={`${
-            sidebarOpen ? "w-64" : "w-20"
-          } bg-[#0A1F44] text-white flex flex-col justify-between transition-all duration-300 z-30 shrink-0 shadow-xl`}
+          className={`${sidebarOpen ? "w-64" : "w-20"
+            } bg-[#0A1F44] text-white flex flex-col justify-between transition-all duration-300 z-30 shrink-0 shadow-xl`}
         >
           <div>
             {/* Logo Section */}
@@ -304,11 +269,10 @@ export default function DashboardPage() {
                   <button
                     key={module.id}
                     onClick={() => setActiveModule(module.id)}
-                    className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                      isActive
-                        ? "bg-[#2952E3] text-white shadow-md shadow-blue-900/30"
-                        : "text-slate-300 hover:text-white hover:bg-white/10"
-                    }`}
+                    className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer ${isActive
+                      ? "bg-[#2952E3] text-white shadow-md shadow-blue-900/30"
+                      : "text-slate-300 hover:text-white hover:bg-white/10"
+                      }`}
                     title={module.label}
                   >
                     <Icon size={19} className={isActive ? "text-white" : "text-slate-400"} />
@@ -354,7 +318,7 @@ export default function DashboardPage() {
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          
+
           {/* Top Header Bar */}
           <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-xs">
             {/* Left Header Title */}
@@ -387,11 +351,10 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowNotifications((s) => !s)}
-                  className={`relative p-2 rounded-xl border transition cursor-pointer ${
-                    showNotifications
-                      ? "bg-blue-50 text-brand-blue border-brand-blue/40 shadow-xs"
-                      : "text-slate-500 hover:text-slate-800 border-slate-200/80 hover:bg-slate-50"
-                  }`}
+                  className={`relative p-2 rounded-xl border transition cursor-pointer ${showNotifications
+                    ? "bg-blue-50 text-brand-blue border-brand-blue/40 shadow-xs"
+                    : "text-slate-500 hover:text-slate-800 border-slate-200/80 hover:bg-slate-50"
+                    }`}
                   title="Institutional AI Alerts & Recommendations"
                 >
                   <Bell size={18} />
@@ -474,12 +437,10 @@ export default function DashboardPage() {
                                 </span>
                               </div>
                               <p className="text-[11px] text-slate-600 leading-snug pl-7">
-                                {rec.recommendation}
+
+                                {rec.condition}
+
                               </p>
-                              <div className={`text-[10px] font-medium pl-7 flex items-center gap-1 ${priorityStyle.metric}`}>
-                                <TrendingUp size={11} />
-                                <span className="truncate">{rec.metricEvidence}</span>
-                              </div>
                             </div>
                           );
                         })}
@@ -695,29 +656,9 @@ function AgenticRecommendationsWidget() {
 
                 {/* Condition */}
                 <div className={`border rounded-xl p-3 text-xs ${priorityStyle.condition}`}>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${priorityStyle.conditionLabel}`}>
-                    Condition:
-                  </span>
                   <p className="text-slate-700 leading-relaxed font-medium">
                     {rec.condition}
                   </p>
-                </div>
-
-                {/* Recommendation */}
-                <div className={`border rounded-xl p-3 text-xs ${priorityStyle.recommendation}`}>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 mb-1 ${priorityStyle.recommendationLabel}`}>
-                    <Lightbulb size={12} className={priorityStyle.recommendationLabel} />
-                    Recommendation:
-                  </span>
-                  <p className="text-slate-800 leading-relaxed font-semibold">
-                    {rec.recommendation}
-                  </p>
-                </div>
-
-                {/* Metric Evidence Tag */}
-                <div className={`flex items-center gap-1.5 text-[11px] font-semibold pt-1 ${priorityStyle.metric}`}>
-                  <TrendingUp size={13} className="shrink-0" />
-                  <span className="truncate">{rec.metricEvidence}</span>
                 </div>
               </div>
 
@@ -1155,7 +1096,7 @@ function AdmissionsModuleView() {
             {firstChoiceByDepartment.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={firstChoiceByDepartment} margin={{ top: 10, right: 12, left: 0, bottom: 12 }}>
               <CartesianGrid stroke="#EDE9FE" strokeDasharray="4 4" vertical={false} /><XAxis dataKey="department" tickLine={false} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} />
               <Tooltip contentStyle={{ backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #E2E8F0", boxShadow: "0 10px 25px -5px rgba(15,23,42,0.15)" }} formatter={(value) => [`${Number(value).toLocaleString()} students`, "First choice allocations"]} labelFormatter={(label) => `Department: ${label}`} />
-              <Bar dataKey="first_choice_allocations" name="First choice allocations" fill="#6D5CE8" radius={[7,7,0,0]} />
+              <Bar dataKey="first_choice_allocations" name="First choice allocations" fill="#6D5CE8" radius={[7, 7, 0, 0]} />
             </BarChart></ResponsiveContainer> : <p className="flex h-full items-center justify-center text-sm text-slate-400">No first-choice allocation data for this filter.</p>}
           </div>
         </article>
@@ -1165,7 +1106,7 @@ function AdmissionsModuleView() {
             {secondChoiceByDepartment.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={secondChoiceByDepartment} margin={{ top: 10, right: 12, left: 0, bottom: 12 }}>
               <CartesianGrid stroke="#EDE9FE" strokeDasharray="4 4" vertical={false} /><XAxis dataKey="department" tickLine={false} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} />
               <Tooltip contentStyle={{ backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid #E2E8F0", boxShadow: "0 10px 25px -5px rgba(15,23,42,0.15)" }} formatter={(value) => [`${Number(value).toLocaleString()} students`, "Second choice allocations"]} labelFormatter={(label) => `Department: ${label}`} />
-              <Bar dataKey="second_choice_allocations" name="Second choice allocations" fill="#F59E0B" radius={[7,7,0,0]} />
+              <Bar dataKey="second_choice_allocations" name="Second choice allocations" fill="#F59E0B" radius={[7, 7, 0, 0]} />
             </BarChart></ResponsiveContainer> : <p className="flex h-full items-center justify-center text-sm text-slate-400">No second-choice allocation data for this filter.</p>}
           </div>
         </article>
